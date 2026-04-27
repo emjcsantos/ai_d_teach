@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Play, Sparkles, Square, Volume2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, Sparkles, Square } from "lucide-react";
 import { canSpeak, speak, stopSpeaking } from "../lib/textToSpeech";
-import type { Lesson } from "../types/lesson";
+import type { Lesson, LessonProgress } from "../types/lesson";
 import { LessonCanvas } from "./LessonCanvas";
+import { TutorChat } from "./TutorChat";
 
 export type LessonPlayerProps = {
   lesson: Lesson;
   currentStepIndex: number;
   onStepChange: (index: number) => void;
+  progress: LessonProgress;
+  onSendMessage: (message: string) => string;
   voiceRate: number;
-  onVoiceRateChange: (rate: number) => void;
 };
 
 const MIN_RATE = 0.7;
@@ -33,8 +35,9 @@ export function LessonPlayer({
   lesson,
   currentStepIndex,
   onStepChange,
+  progress,
+  onSendMessage,
   voiceRate,
-  onVoiceRateChange,
 }: LessonPlayerProps) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechAvailable, setSpeechAvailable] = useState(false);
@@ -86,8 +89,13 @@ export function LessonPlayer({
     setIsSpeaking(false);
   }
 
-  function handleRateChange(nextRate: number) {
-    onVoiceRateChange(clamp(nextRate, MIN_RATE, MAX_RATE));
+  function toggleNarration() {
+    if (isSpeaking) {
+      stopNarration();
+      return;
+    }
+
+    playNarration();
   }
 
   if (!currentStep) {
@@ -117,15 +125,14 @@ export function LessonPlayer({
         </div>
       </header>
 
-      <nav className="mission-path" aria-label="Lesson steps">
+      <ol className="mission-path" aria-label="Lesson steps">
         {lesson.steps.map((step, index) => {
           const selected = index === safeStepIndex;
           const completed = index < safeStepIndex;
 
           return (
-            <button
+            <li
               key={step.id}
-              type="button"
               aria-current={selected ? "step" : undefined}
               className={[
                 "mission-path__step",
@@ -134,14 +141,13 @@ export function LessonPlayer({
               ]
                 .filter(Boolean)
                 .join(" ")}
-              onClick={() => moveToStep(index)}
             >
               <span>{index + 1}</span>
               <strong>{step.title}</strong>
-            </button>
+            </li>
           );
         })}
-      </nav>
+      </ol>
 
       <div className="learning-arena">
         <LessonCanvas step={currentStep} />
@@ -155,50 +161,16 @@ export function LessonPlayer({
               <h2 id="coach-title">Tutor says</h2>
               <p>{currentStep.narration}</p>
             </div>
-          </section>
-
-          <section className="coach-card coach-card--voice" aria-label="Narration controls">
-            <div className="coach-card__heading">
-              <Volume2 size={19} aria-hidden="true" />
-              <h2>Voice</h2>
-            </div>
-            <div className="voice-actions">
-              <button
-                type="button"
-                onClick={playNarration}
-                disabled={!speechAvailable}
-                className="coach-button coach-button--primary"
-                title={speechAvailable ? "Play narration" : "Browser speech is unavailable"}
-              >
-                <Play size={18} aria-hidden="true" />
-                <span>{isSpeaking ? "Replay" : "Play"}</span>
-              </button>
-              <button
-                type="button"
-                onClick={stopNarration}
-                disabled={!isSpeaking}
-                className="coach-button"
-                title="Stop narration"
-              >
-                <Square size={18} aria-hidden="true" />
-                <span>Stop</span>
-              </button>
-            </div>
-            <label className="voice-rate">
-              <span>Speed</span>
-              <strong>{rate.toFixed(2)}x</strong>
-              <input
-                type="range"
-                min={MIN_RATE}
-                max={MAX_RATE}
-                step={0.05}
-                value={rate}
-                onChange={(event) => handleRateChange(Number(event.currentTarget.value))}
-              />
-            </label>
-            {!speechAvailable ? (
-              <p className="coach-note">Browser narration is unavailable in this environment.</p>
-            ) : null}
+            <button
+              type="button"
+              onClick={toggleNarration}
+              disabled={!speechAvailable}
+              className="coach-button coach-button--primary"
+              title={speechAvailable ? "Read this step aloud" : "Browser speech is unavailable"}
+            >
+              {isSpeaking ? <Square size={18} aria-hidden="true" /> : <Play size={18} aria-hidden="true" />}
+              <span>{isSpeaking ? "Stop voice" : "Read aloud"}</span>
+            </button>
           </section>
 
           {currentStep.prompt ? (
@@ -207,6 +179,13 @@ export function LessonPlayer({
               <p>{currentStep.prompt}</p>
             </section>
           ) : null}
+
+          <TutorChat
+            lesson={lesson}
+            progress={progress}
+            voiceRate={rate}
+            onSendMessage={onSendMessage}
+          />
 
           <div className="lesson-nav-actions">
             <button

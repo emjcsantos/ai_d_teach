@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bot, Send, Volume2, VolumeX } from "lucide-react";
+import { Bot, Send, Square } from "lucide-react";
 import { canSpeak, speak, stopSpeaking } from "../lib/textToSpeech";
 import type { Lesson, LessonProgress } from "../types/lesson";
 
@@ -10,11 +10,9 @@ export type TutorChatProps = {
   onSendMessage: (message: string) => string;
 };
 
-const quickPrompts = ["Explain this step", "Give me a hint", "Ask me a question"];
-
 export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorChatProps) {
   const [draft, setDraft] = useState("");
-  const [speakReplies, setSpeakReplies] = useState(false);
+  const [isSpeakingReply, setIsSpeakingReply] = useState(false);
   const [speechAvailable, setSpeechAvailable] = useState(false);
   const logRef = useRef<HTMLDivElement | null>(null);
   const trimmedDraft = draft.trim();
@@ -27,7 +25,7 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
             {
               id: "starter-tutor-message",
               role: "tutor" as const,
-              text: `Ask me anything about ${lesson.topic}. I can explain the step, give a hint, or ask you a practice question.`,
+              text: `Stay with the lesson and ask me anything about ${lesson.topic}. I will explain, hint, or ask you back like a tutor.`,
               createdAt: new Date().toISOString(),
             },
           ],
@@ -36,6 +34,18 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
 
   useEffect(() => {
     setSpeechAvailable(canSpeak());
+  }, []);
+
+  useEffect(() => {
+    stopSpeaking();
+    setIsSpeakingReply(false);
+    setDraft("");
+  }, [lesson.id]);
+
+  useEffect(() => {
+    return () => {
+      stopSpeaking();
+    };
   }, []);
 
   useEffect(() => {
@@ -52,8 +62,13 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
     const reply = onSendMessage(cleanMessage);
     setDraft("");
 
-    if (speakReplies && speechAvailable) {
-      speak(reply, { rate: voiceRate });
+    if (speechAvailable) {
+      stopSpeaking();
+      setIsSpeakingReply(true);
+      speak(reply, {
+        rate: voiceRate,
+        onEnd: () => setIsSpeakingReply(false),
+      });
     }
   }
 
@@ -61,19 +76,11 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
     <section className="tutor-chat" aria-labelledby="tutor-chat-title">
       <header className="tutor-chat__header">
         <div>
-          <h2 id="tutor-chat-title">Tutor Chat</h2>
-          <p>Converse with the current lesson.</p>
+          <h2 id="tutor-chat-title">AI Tutor</h2>
+          <p>Ask while you study. Replies are spoken when your browser supports voice.</p>
         </div>
         <Bot size={22} aria-hidden="true" />
       </header>
-
-      <div className="tutor-chat__quick-prompts" aria-label="Quick chat prompts">
-        {quickPrompts.map((prompt) => (
-          <button key={prompt} type="button" onClick={() => sendMessage(prompt)}>
-            {prompt}
-          </button>
-        ))}
-      </div>
 
       <div className="tutor-chat__log" ref={logRef} aria-live="polite">
         {messages.map((message) => (
@@ -99,7 +106,7 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
         }}
       >
         <label>
-          <span>Message</span>
+          <span>Talk to the tutor</span>
           <textarea
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
@@ -109,23 +116,22 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
         </label>
 
         <div className="tutor-chat__actions">
-          <button
-            type="button"
-            className="tutor-chat__voice-toggle"
-            aria-pressed={speakReplies}
-            disabled={!speechAvailable}
-            onClick={() => {
-              stopSpeaking();
-              setSpeakReplies((current) => !current);
-            }}
-            title={speechAvailable ? "Toggle spoken tutor replies" : "Browser speech unavailable"}
-          >
-            {speakReplies ? <Volume2 size={17} aria-hidden="true" /> : <VolumeX size={17} aria-hidden="true" />}
-            Voice
-          </button>
+          {isSpeakingReply ? (
+            <button
+              type="button"
+              className="tutor-chat__stop"
+              onClick={() => {
+                stopSpeaking();
+                setIsSpeakingReply(false);
+              }}
+            >
+              <Square size={16} aria-hidden="true" />
+              Stop voice
+            </button>
+          ) : null}
           <button type="submit" className="tutor-chat__send" disabled={!trimmedDraft}>
             <Send size={17} aria-hidden="true" />
-            Send
+            Ask Tutor
           </button>
         </div>
       </form>
@@ -134,4 +140,3 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
 }
 
 export default TutorChat;
-

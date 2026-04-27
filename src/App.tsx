@@ -17,15 +17,15 @@ import { LessonLibrary } from "./components/LessonLibrary";
 import { LessonPlayer } from "./components/LessonPlayer";
 import { QuizPanel } from "./components/QuizPanel";
 import { FeedbackPanel, type FeedbackKind } from "./components/FeedbackPanel";
-import { TutorChat } from "./components/TutorChat";
 import { buildTutorReply } from "./lib/tutorBrain";
 import type { ChatMessage, Difficulty, GradeLevel, Lesson } from "./types/lesson";
+
+const DEFAULT_VOICE_RATE = 0.95;
 
 export default function App() {
   const [lessons, setLessons] = useState<Lesson[]>(() => loadLessons());
   const [activeLesson, setActiveLesson] = useState<Lesson>(() => lessons[0]);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [voiceRate, setVoiceRate] = useState(0.95);
   const [progressVersion, setProgressVersion] = useState(0);
 
   const progress = useMemo(
@@ -229,19 +229,13 @@ export default function App() {
           lesson={activeLesson}
           currentStepIndex={currentStepIndex}
           onStepChange={handleStepChange}
-          voiceRate={voiceRate}
-          onVoiceRateChange={setVoiceRate}
+          progress={progress}
+          voiceRate={DEFAULT_VOICE_RATE}
+          onSendMessage={handleSendTutorMessage}
         />
       </section>
 
-      <aside className="insight-rail" aria-label="Quiz and progress">
-        <TutorChat
-          lesson={activeLesson}
-          progress={progress}
-          voiceRate={voiceRate}
-          onSendMessage={handleSendTutorMessage}
-        />
-
+      <aside className="insight-rail" aria-label="Practice and progress">
         <QuizPanel
           lesson={activeLesson}
           progress={progress}
