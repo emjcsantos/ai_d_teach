@@ -17,8 +17,8 @@ import { LessonLibrary } from "./components/LessonLibrary";
 import { LessonPlayer } from "./components/LessonPlayer";
 import { QuizPanel } from "./components/QuizPanel";
 import { FeedbackPanel, type FeedbackKind } from "./components/FeedbackPanel";
-import { buildTutorReply } from "./lib/tutorBrain";
-import type { ChatMessage, Difficulty, GradeLevel, Lesson } from "./types/lesson";
+import { buildTutorTurn } from "./lib/tutorBrain";
+import type { ChatMessage, Difficulty, GradeLevel, Lesson, TutorTurn } from "./types/lesson";
 
 const DEFAULT_VOICE_RATE = 0.95;
 
@@ -35,6 +35,7 @@ export default function App() {
   const feedbackCount =
     progress.teacherNotes.length + progress.studentNotes.length + progress.improvementNotes.length;
   const conversationCount = progress.chatMessages.filter((message) => message.role === "student").length;
+  const tutorSignalCount = progress.tutorSignals.length;
 
   useEffect(() => {
     let cancelled = false;
@@ -84,6 +85,7 @@ export default function App() {
     role: ChatMessage["role"],
     text: string,
     stepId?: string,
+    tutorTurn?: TutorTurn,
   ): ChatMessage {
     return {
       id: `${role}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -91,6 +93,9 @@ export default function App() {
       text,
       stepId,
       createdAt: new Date().toISOString(),
+      tutorMode: tutorTurn?.mode,
+      tutorUnderstanding: tutorTurn?.understanding,
+      tutorNextAction: tutorTurn?.nextAction,
     };
   }
 
@@ -178,24 +183,45 @@ export default function App() {
   function handleSendTutorMessage(message: string) {
     const currentStep = activeLesson.steps[currentStepIndex] ?? activeLesson.steps[0];
     const currentProgress = getLessonProgress(activeLesson.id);
-    const reply = currentStep
-      ? buildTutorReply({
+    const tutorTurn: TutorTurn = currentStep
+      ? buildTutorTurn({
           lesson: activeLesson,
           currentStep,
           message,
           progress: currentProgress,
         })
-      : `This lesson needs at least one step before I can tutor it. Add a lesson step for ${activeLesson.topic}, then ask me again.`;
+      : {
+          reply: `This lesson needs at least one step before I can tutor it. Add a lesson step for ${activeLesson.topic}, then ask me again.`,
+          mode: "explain",
+          understanding: "not_checked",
+          nextAction: "review",
+          canContinue: false,
+        };
     const userMessage = createChatMessage("student", message, currentStep?.id);
-    const tutorMessage = createChatMessage("tutor", reply, currentStep?.id);
+    const tutorMessage = createChatMessage("tutor", tutorTurn.reply, currentStep?.id, tutorTurn);
+    const tutorSignal = currentStep
+      ? {
+          id: `signal-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          stepId: currentStep.id,
+          studentMessage: message,
+          mode: tutorTurn.mode,
+          understanding: tutorTurn.understanding,
+          nextAction: tutorTurn.nextAction,
+          canContinue: tutorTurn.canContinue,
+          createdAt: tutorMessage.createdAt,
+        }
+      : undefined;
 
     void updateLessonProgressInRepository({
       ...currentProgress,
       chatMessages: [...currentProgress.chatMessages, userMessage, tutorMessage],
+      tutorSignals: tutorSignal
+        ? [...currentProgress.tutorSignals, tutorSignal]
+        : currentProgress.tutorSignals,
     });
     setProgressVersion((version) => version + 1);
 
-    return reply;
+    return tutorTurn;
   }
 
   return (
@@ -270,6 +296,10 @@ export default function App() {
             <div>
               <dt>Conversations</dt>
               <dd>{conversationCount}</dd>
+            </div>
+            <div>
+              <dt>Tutor signals</dt>
+              <dd>{tutorSignalCount}</dd>
             </div>
           </dl>
         </section>

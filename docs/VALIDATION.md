@@ -57,6 +57,7 @@ Expected results:
 - Matching topic and grade searches reuse saved lessons before creating new ones.
 - Existing progress remains attached to the correct lesson id.
 - Existing tutor chat transcripts remain attached to the correct lesson id.
+- Existing tutor understanding signals remain attached to the correct lesson id.
 - Existing feedback notes remain attached to the correct lesson id.
 - Invalid or unreadable stored JSON falls back safely instead of crashing the app.
 - Schema changes preserve backward compatibility through migrations or explicit fallback behavior.
@@ -105,6 +106,7 @@ If speech input is added later, it should be push-to-talk and must not listen co
 For progress and improvement changes, validate that:
 
 - Quiz attempts are stored with selected answer, correctness, and timestamp.
+- Tutor understanding signals are stored with step id, mode, next action, and whether the child can continue.
 - Teacher, student, and improvement notes are separate from canonical lesson data.
 - Improved lesson content can become a new version.
 - Older lesson versions remain identifiable for comparison or rollback when versioning support exists.
@@ -132,6 +134,7 @@ For UI changes, check common laptop and tablet sizes. The app should:
 - Avoid text overlap.
 - Open with the interactive lesson surface first on small screens.
 - Keep the primary lesson clicks focused on the canvas, tutor conversation, and simple step navigation.
+- Show Continue only after the tutor records solid understanding for the current step.
 - Keep lesson visuals usable on smaller screens.
 - Keep quiz choices easy to select.
 - Preserve visible narration and prompts while TTS controls are used.

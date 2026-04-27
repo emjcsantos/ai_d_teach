@@ -25,6 +25,7 @@ function createEmptyProgress(lessonId) {
     studentNotes: [],
     improvementNotes: [],
     chatMessages: [],
+    tutorSignals: [],
   };
 }
 
@@ -38,6 +39,7 @@ function normalizeProgress(lessonId, progress = {}) {
     studentNotes: Array.isArray(progress.studentNotes) ? progress.studentNotes : [],
     improvementNotes: Array.isArray(progress.improvementNotes) ? progress.improvementNotes : [],
     chatMessages: Array.isArray(progress.chatMessages) ? progress.chatMessages : [],
+    tutorSignals: Array.isArray(progress.tutorSignals) ? progress.tutorSignals : [],
   };
 }
 
@@ -251,4 +253,3 @@ export async function recordFeedback({ lessonId, kind, note }) {
       kind === "improvement" ? [...progress.improvementNotes, stampedNote] : progress.improvementNotes,
   });
 }
-

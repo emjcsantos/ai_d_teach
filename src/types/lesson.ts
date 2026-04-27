@@ -40,12 +40,40 @@ export type QuizQuestion = {
   explanation: string;
 };
 
+export type TutorMode = "explain" | "hint" | "check" | "encourage" | "advance";
+
+export type TutorUnderstanding = "not_checked" | "emerging" | "solid";
+
+export type TutorNextAction = "answer" | "try_canvas" | "continue" | "review" | "quiz";
+
+export type TutorTurn = {
+  reply: string;
+  mode: TutorMode;
+  understanding: TutorUnderstanding;
+  nextAction: TutorNextAction;
+  canContinue: boolean;
+};
+
 export type ChatMessage = {
   id: string;
   role: "student" | "tutor";
   text: string;
   createdAt: string;
   stepId?: string;
+  tutorMode?: TutorMode;
+  tutorUnderstanding?: TutorUnderstanding;
+  tutorNextAction?: TutorNextAction;
+};
+
+export type TutorSignal = {
+  id: string;
+  stepId: string;
+  studentMessage: string;
+  mode: TutorMode;
+  understanding: TutorUnderstanding;
+  nextAction: TutorNextAction;
+  canContinue: boolean;
+  createdAt: string;
 };
 
 export type Lesson = {
@@ -78,4 +106,5 @@ export type LessonProgress = {
   studentNotes: string[];
   improvementNotes: string[];
   chatMessages: ChatMessage[];
+  tutorSignals: TutorSignal[];
 };

@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bot, Send, Square } from "lucide-react";
 import { canSpeak, speak, stopSpeaking } from "../lib/textToSpeech";
-import type { Lesson, LessonProgress } from "../types/lesson";
+import type { Lesson, LessonProgress, TutorTurn } from "../types/lesson";
 
 export type TutorChatProps = {
   lesson: Lesson;
   progress: LessonProgress;
   voiceRate: number;
-  onSendMessage: (message: string) => string;
+  onSendMessage: (message: string) => TutorTurn;
 };
 
 export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorChatProps) {
@@ -59,13 +59,13 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
       return;
     }
 
-    const reply = onSendMessage(cleanMessage);
+    const tutorTurn = onSendMessage(cleanMessage);
     setDraft("");
 
     if (speechAvailable) {
       stopSpeaking();
       setIsSpeakingReply(true);
-      speak(reply, {
+      speak(tutorTurn.reply, {
         rate: voiceRate,
         onEnd: () => setIsSpeakingReply(false),
       });

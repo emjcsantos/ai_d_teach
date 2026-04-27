@@ -1564,6 +1564,28 @@ button:disabled,
   line-height: 1.45;
 }
 
+.tutor-guidance {
+  border-color: rgba(110, 111, 191, 0.24);
+  background: #f7f6ff;
+}
+
+.tutor-guidance.is-solid {
+  border-color: rgba(94, 159, 88, 0.38);
+  background: #f0f9ef;
+}
+
+.tutor-guidance.is-emerging {
+  border-color: rgba(242, 184, 75, 0.5);
+  background: #fff8df;
+}
+
+.tutor-guidance__label {
+  color: #176c6c;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .lesson-nav-actions {
   display: flex;
   flex-wrap: wrap;

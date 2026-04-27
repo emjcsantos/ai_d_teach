@@ -21,9 +21,10 @@ The current prototype scope is a Vite and React app with local lesson storage, s
 - Saved lesson library.
 - Local lesson repository reuse before creating a new lesson.
 - Manual import or local starter lesson creation before optional API generation.
-- Child-facing lesson player with a mission header, read-only step path, interactive canvas, coach prompts, and a built-in AI tutor.
+- Child-facing lesson player with a mission header, read-only step path, interactive canvas, coach prompts, and a tutor-led Continue flow.
 - Browser TTS narration with visible lesson text.
 - Embedded Tutor Chat for lesson-aware conversation with spoken replies when browser voice is available.
+- Tutor modes and saved tutor signals for explanation, hints, understanding checks, encouragement, and step advancement.
 - Richer interactive visual scene types for fractions, vocabulary, formulas, and simple science cycles.
 - Quiz flow and completion or progress markers.
 - Feedback Lab for teacher, student, and improvement notes.
@@ -39,7 +40,7 @@ If the shared server is not available, the standalone app falls back to browser 
 
 The Feedback Lab saves teacher notes, student experience notes, and improvement notes into the progress record for the active lesson. These notes feed the Ralph Loop without changing the canonical lesson content directly.
 
-Tutor Chat messages are also saved in progress. The current MVP uses a local lesson-aware tutor brain, so conversation works without an API key. A future API tutor can replace the response logic while keeping the same saved transcript shape.
+Tutor Chat messages and tutor understanding signals are also saved in progress. The current MVP uses a local lesson-aware tutor brain, so conversation works without an API key. A future API tutor can replace the response logic while keeping the same saved transcript and signal shape.
 
 On fresh state, the repository seeds bundled sample lessons. When a parent asks for a topic, the app should check the saved repository first and reuse a matching lesson before creating, importing, or eventually requesting a new generated lesson.
 
@@ -61,7 +62,7 @@ Continuous improvement follows the Ralph Loop:
 
 1. Run the lesson.
 2. Assess quiz results and interaction signals.
-3. Listen to parent, teacher, and student feedback.
+3. Listen to tutor understanding signals, parent notes, teacher notes, and student feedback.
 4. Learn which concepts need improvement.
 5. Patch the lesson.
 6. Version the improved lesson.
