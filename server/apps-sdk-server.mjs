@@ -10,6 +10,16 @@ import {
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
+import {
+  findOrCreateLesson,
+  getLesson,
+  getProgress,
+  listLessons,
+  recordFeedback,
+  recordQuizAnswer,
+  saveLesson,
+  saveProgress,
+} from "./lessonStore.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const WIDGET_URI = "ui://widget/lesson.html";
@@ -33,213 +43,41 @@ const recordFeedbackInputSchema = {
   note: z.string().min(1),
 };
 
-const sampleLessons = [
-  {
-    id: "sample-fractions-grade-3",
-    schemaVersion: 1,
-    topic: "Fractions",
-    gradeLevel: "3",
-    difficulty: "standard",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    source: "sample",
-    version: 1,
-    status: "ready",
-    summary: "Use a pizza, formula thinking, and a quick check to learn parts of a whole.",
-    steps: [
-      {
-        id: "fraction-whole",
-        title: "A Whole Can Split",
-        narration: "A fraction tells us how many equal parts of a whole we are talking about.",
-        prompt: "Look at the highlighted slice and tell ChatGPT what one fourth means.",
-        visual: {
-          kind: "fraction_pizza",
-          parts: 4,
-          highlight: 1,
-          label: "1/4",
-        },
-      },
-      {
-        id: "fraction-formula",
-        title: "Top And Bottom",
-        narration:
-          "The top number counts selected parts. The bottom number counts all equal parts.",
-        prompt: "Ask ChatGPT why the bottom number is four.",
-        visual: {
-          kind: "formula_board",
-          formula: "selected parts / equal parts = fraction",
-          explanation: "One selected slice out of four equal slices is one fourth.",
-        },
-      },
-    ],
-    quiz: [
-      {
-        id: "fraction-q1",
-        prompt: "If a pizza has 4 equal slices and you choose 1 slice, what fraction is chosen?",
-        choices: ["1/4", "4/1", "1/2"],
-        answer: "1/4",
-        explanation: "One chosen slice out of four equal slices is 1/4.",
-      },
-    ],
-  },
-  {
-    id: "sample-photosynthesis-grade-4",
-    schemaVersion: 1,
-    topic: "Photosynthesis",
-    gradeLevel: "4",
-    difficulty: "standard",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    source: "sample",
-    version: 1,
-    status: "ready",
-    summary: "Follow sunlight, water, and carbon dioxide as plants make food.",
-    steps: [
-      {
-        id: "photo-cycle",
-        title: "Plant Food Factory",
-        narration:
-          "Plants use sunlight, water, and carbon dioxide to make sugar for energy and release oxygen.",
-        prompt: "Ask ChatGPT to explain one part of the cycle.",
-        visual: {
-          kind: "science_cycle",
-          title: "Photosynthesis",
-          nodes: ["Sunlight", "Water", "Carbon dioxide", "Sugar", "Oxygen"],
-        },
-      },
-      {
-        id: "photo-words",
-        title: "Key Words",
-        narration: "Photosynthesis has important words. Learn them like puzzle pieces.",
-        prompt: "Choose one word and ask ChatGPT for an example.",
-        visual: {
-          kind: "word_cards",
-          words: [
-            { term: "Chlorophyll", meaning: "Green pigment that helps leaves catch sunlight." },
-            { term: "Glucose", meaning: "A sugar plants make for energy." },
-            { term: "Oxygen", meaning: "A gas plants release into the air." },
-          ],
-        },
-      },
-    ],
-    quiz: [
-      {
-        id: "photo-q1",
-        prompt: "Which energy source helps plants make food?",
-        choices: ["Sunlight", "Moonlight", "Sand"],
-        answer: "Sunlight",
-        explanation: "Plants use sunlight as energy during photosynthesis.",
-      },
-    ],
-  },
-];
-
-const lessons = new Map(sampleLessons.map((lesson) => [lesson.id, lesson]));
-const progressByLessonId = new Map();
-
-function normalizeTopic(topic) {
-  return topic.trim().toLowerCase();
+function writeCorsHeaders(res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "content-type, mcp-session-id");
+  res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id");
 }
 
-function createEmptyProgress(lessonId) {
-  return {
-    lessonId,
-    quizAttempts: [],
-    teacherNotes: [],
-    studentNotes: [],
-    improvementNotes: [],
-    chatMessages: [],
-  };
+function writeJson(res, statusCode, payload) {
+  writeCorsHeaders(res);
+  res.writeHead(statusCode, { "content-type": "application/json" });
+  res.end(JSON.stringify(payload));
 }
 
-function getProgress(lessonId) {
-  if (!progressByLessonId.has(lessonId)) {
-    progressByLessonId.set(lessonId, createEmptyProgress(lessonId));
+async function readJsonBody(req) {
+  const chunks = [];
+
+  for await (const chunk of req) {
+    chunks.push(chunk);
   }
 
-  return progressByLessonId.get(lessonId);
-}
+  const rawBody = Buffer.concat(chunks).toString("utf8");
 
-function createStarterLesson(topic, gradeLevel = "3", difficulty = "standard") {
-  const slug = normalizeTopic(topic)
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-  const createdAt = new Date().toISOString();
-
-  return {
-    id: `${slug || "lesson"}-chatgpt-${Date.now()}`,
-    schemaVersion: 1,
-    topic,
-    gradeLevel,
-    difficulty,
-    createdAt,
-    updatedAt: createdAt,
-    source: "chatgpt-app-template",
-    version: 1,
-    status: "needs-review",
-    summary: `A starter interactive lesson for ${topic}. ChatGPT can tutor the child while this widget shows the lesson canvas.`,
-    steps: [
-      {
-        id: "intro",
-        title: `Meet ${topic}`,
-        narration: `Today we are learning about ${topic}. Look at the idea, ask questions, and try the quick check.`,
-        prompt: `Ask ChatGPT: can you explain ${topic} simply?`,
-        visual: {
-          kind: "word_cards",
-          words: [
-            { term: topic, meaning: "The main idea for this lesson." },
-            { term: "Example", meaning: "A clear case that makes the idea easier." },
-            { term: "Practice", meaning: "A quick way to check what you know." },
-          ],
-        },
-      },
-      {
-        id: "practice",
-        title: "Try It",
-        narration: `Use ${topic} in your own words, then ask ChatGPT for feedback.`,
-        prompt: `Tell ChatGPT one thing you notice about ${topic}.`,
-        visual: {
-          kind: "formula_board",
-          formula: `${topic} = idea + example + practice`,
-          explanation: "Learning is easier when each step is visible and small.",
-        },
-      },
-    ],
-    quiz: [
-      {
-        id: "starter-q1",
-        prompt: `What helps you learn ${topic}?`,
-        choices: ["Look, ask, and practice", "Skip the lesson", "Guess only"],
-        answer: "Look, ask, and practice",
-        explanation: "Looking, asking, and practicing helps new ideas stick.",
-      },
-    ],
-  };
-}
-
-function findOrCreateLesson({ topic, gradeLevel, difficulty }) {
-  const normalizedTopic = normalizeTopic(topic);
-  const existingLesson = [...lessons.values()].find(
-    (lesson) =>
-      normalizeTopic(lesson.topic) === normalizedTopic &&
-      (!gradeLevel || String(lesson.gradeLevel) === String(gradeLevel)),
-  );
-
-  if (existingLesson) {
-    return existingLesson;
+  if (!rawBody) {
+    return {};
   }
 
-  const lesson = createStarterLesson(topic, gradeLevel, difficulty);
-  lessons.set(lesson.id, lesson);
-  return lesson;
+  return JSON.parse(rawBody);
 }
 
-function lessonPayload(lesson, message) {
+async function lessonPayload(lesson, message) {
   return {
     content: [{ type: "text", text: message }],
     structuredContent: {
       lesson,
-      progress: getProgress(lesson.id),
+      progress: await getProgress(lesson.id),
     },
   };
 }
@@ -287,7 +125,7 @@ function createAiDTeachServer() {
         };
       }
 
-      const lesson = findOrCreateLesson({
+      const lesson = await findOrCreateLesson({
         topic,
         gradeLevel: args.gradeLevel,
         difficulty: args.difficulty,
@@ -313,7 +151,7 @@ function createAiDTeachServer() {
       },
     },
     async (args) => {
-      const lesson = lessons.get(args.lessonId);
+      const lesson = await getLesson(args.lessonId);
 
       if (!lesson) {
         return {
@@ -322,16 +160,7 @@ function createAiDTeachServer() {
         };
       }
 
-      const question = lesson.quiz.find((candidate) => candidate.id === args.questionId);
-      const progress = getProgress(lesson.id);
-
-      progress.quizAttempts.push({
-        questionId: args.questionId,
-        selected: args.selected,
-        correct: question?.answer === args.selected,
-        answeredAt: new Date().toISOString(),
-      });
-
+      await recordQuizAnswer(args);
       return lessonPayload(lesson, `Recorded the answer "${args.selected}".`);
     },
   );
@@ -349,7 +178,7 @@ function createAiDTeachServer() {
       },
     },
     async (args) => {
-      const lesson = lessons.get(args.lessonId);
+      const lesson = await getLesson(args.lessonId);
 
       if (!lesson) {
         return {
@@ -358,22 +187,55 @@ function createAiDTeachServer() {
         };
       }
 
-      const progress = getProgress(lesson.id);
-      const note = `${new Date().toLocaleDateString()}: ${args.note.trim()}`;
-
-      if (args.kind === "teacher") {
-        progress.teacherNotes.push(note);
-      } else if (args.kind === "student") {
-        progress.studentNotes.push(note);
-      } else {
-        progress.improvementNotes.push(note);
-      }
-
+      await recordFeedback(args);
       return lessonPayload(lesson, `Saved ${args.kind} feedback for ${lesson.topic}.`);
     },
   );
 
   return server;
+}
+
+async function handleApiRequest(req, res, url) {
+  if (req.method === "GET" && url.pathname === "/api/lessons") {
+    writeJson(res, 200, { lessons: await listLessons() });
+    return true;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/lessons") {
+    const body = await readJsonBody(req);
+
+    if (!body.lesson?.id) {
+      writeJson(res, 400, { error: "Missing lesson." });
+      return true;
+    }
+
+    const lesson = await saveLesson(body.lesson);
+    writeJson(res, 200, { lesson, lessons: await listLessons() });
+    return true;
+  }
+
+  if (url.pathname.startsWith("/api/progress/")) {
+    const lessonId = decodeURIComponent(url.pathname.slice("/api/progress/".length));
+
+    if (!lessonId) {
+      writeJson(res, 400, { error: "Missing lesson id." });
+      return true;
+    }
+
+    if (req.method === "GET") {
+      writeJson(res, 200, { progress: await getProgress(lessonId) });
+      return true;
+    }
+
+    if (req.method === "PUT") {
+      const body = await readJsonBody(req);
+      const progress = await saveProgress({ ...body.progress, lessonId });
+      writeJson(res, 200, { progress });
+      return true;
+    }
+  }
+
+  return false;
 }
 
 const port = Number(process.env.PORT ?? 8787);
@@ -388,13 +250,9 @@ const httpServer = createServer(async (req, res) => {
 
   const url = new URL(req.url, `http://${req.headers.host ?? "localhost"}`);
 
-  if (req.method === "OPTIONS" && url.pathname === MCP_PATH) {
-    res.writeHead(204, {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-      "Access-Control-Allow-Headers": "content-type, mcp-session-id",
-      "Access-Control-Expose-Headers": "Mcp-Session-Id",
-    });
+  if (req.method === "OPTIONS") {
+    writeCorsHeaders(res);
+    res.writeHead(204);
     res.end();
     return;
   }
@@ -406,9 +264,18 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
+  try {
+    if (url.pathname.startsWith("/api/") && (await handleApiRequest(req, res, url))) {
+      return;
+    }
+  } catch (error) {
+    console.error("Error handling API request:", error);
+    writeJson(res, 500, { error: "Internal server error" });
+    return;
+  }
+
   if (url.pathname === MCP_PATH && req.method && MCP_METHODS.has(req.method)) {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id");
+    writeCorsHeaders(res);
 
     const server = createAiDTeachServer();
     const transport = new StreamableHTTPServerTransport({

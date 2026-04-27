@@ -1,8 +1,17 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { createStarterLesson } from "./data/sampleLessons";
-import { loadLessons, upsertLesson } from "./lib/lessonRepository";
-import { getLessonProgress, updateLessonProgress } from "./lib/lessonProgress";
+import {
+  loadLessons,
+  loadLessonsFromRepository,
+  upsertLesson,
+  upsertLessonInRepository,
+} from "./lib/lessonRepository";
+import {
+  getLessonProgress,
+  loadLessonProgressFromRepository,
+  updateLessonProgressInRepository,
+} from "./lib/lessonProgress";
 import { LessonComposer } from "./components/LessonComposer";
 import { LessonLibrary } from "./components/LessonLibrary";
 import { LessonPlayer } from "./components/LessonPlayer";
@@ -26,6 +35,50 @@ export default function App() {
   const feedbackCount =
     progress.teacherNotes.length + progress.studentNotes.length + progress.improvementNotes.length;
   const conversationCount = progress.chatMessages.filter((message) => message.role === "student").length;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    loadLessonsFromRepository()
+      .then((repositoryLessons) => {
+        if (cancelled || repositoryLessons.length === 0) {
+          return;
+        }
+
+        setLessons(repositoryLessons);
+        setActiveLesson((currentLesson) => {
+          return (
+            repositoryLessons.find((lesson) => lesson.id === currentLesson.id) ??
+            repositoryLessons[0]
+          );
+        });
+      })
+      .catch(() => {
+        // Local storage remains the offline fallback when the shared server is not running.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    loadLessonProgressFromRepository(activeLesson.id)
+      .then(() => {
+        if (!cancelled) {
+          setProgressVersion((version) => version + 1);
+        }
+      })
+      .catch(() => {
+        // Keep local progress when the shared server is unavailable.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeLesson.id]);
 
   function createChatMessage(
     role: ChatMessage["role"],
@@ -59,6 +112,9 @@ export default function App() {
     const nextLessons = upsertLesson(lesson);
     setLessons(nextLessons);
     selectLesson(lesson);
+    void upsertLessonInRepository(lesson).then((repositoryLessons) => {
+      setLessons(repositoryLessons);
+    });
   }
 
   function handleStepChange(index: number) {
@@ -67,13 +123,13 @@ export default function App() {
       ...getLessonProgress(activeLesson.id),
       currentStepId: activeLesson.steps[index]?.id,
     };
-    updateLessonProgress(nextProgress);
+    void updateLessonProgressInRepository(nextProgress);
     setProgressVersion((version) => version + 1);
   }
 
   function handleQuizAnswer(questionId: string, selected: string, correct: boolean) {
     const currentProgress = getLessonProgress(activeLesson.id);
-    updateLessonProgress({
+    void updateLessonProgressInRepository({
       ...currentProgress,
       quizAttempts: [
         ...currentProgress.quizAttempts,
@@ -90,7 +146,7 @@ export default function App() {
 
   function handleCompleteLesson() {
     const currentProgress = getLessonProgress(activeLesson.id);
-    updateLessonProgress({
+    void updateLessonProgressInRepository({
       ...currentProgress,
       completedAt: new Date().toISOString(),
     });
@@ -101,7 +157,7 @@ export default function App() {
     const currentProgress = getLessonProgress(activeLesson.id);
     const stampedNote = `${new Date().toLocaleDateString()}: ${note}`;
 
-    updateLessonProgress({
+    void updateLessonProgressInRepository({
       ...currentProgress,
       teacherNotes:
         kind === "teacher"
@@ -133,7 +189,7 @@ export default function App() {
     const userMessage = createChatMessage("student", message, currentStep?.id);
     const tutorMessage = createChatMessage("tutor", reply, currentStep?.id);
 
-    updateLessonProgress({
+    void updateLessonProgressInRepository({
       ...currentProgress,
       chatMessages: [...currentProgress.chatMessages, userMessage, tutorMessage],
     });

@@ -18,7 +18,12 @@ The first ChatGPT App prototype includes:
 - `public/lesson-widget.html`: iframe UI for ChatGPT.
 - `server/apps-sdk-server.mjs`: MCP server exposed at `/mcp`.
 
-The server currently stores lessons and progress in memory. This is enough for local development and connector testing, but production should use durable storage.
+The server stores lessons and progress in local JSON files:
+
+- `data/lessons.json`
+- `data/progress.json`
+
+These files are ignored by Git because they are local user data. The standalone app can also sync with this repository when the MCP server is running.
 
 ## Run Locally
 
@@ -38,6 +43,13 @@ By default, the server listens at:
 
 ```text
 http://localhost:8787/mcp
+```
+
+The shared repository API is available locally at:
+
+```text
+http://localhost:8787/api/lessons
+http://localhost:8787/api/progress/{lessonId}
 ```
 
 ## Connect To ChatGPT During Development
@@ -81,9 +93,8 @@ ChatGPT App:
 
 ## Next Production Steps
 
-- Replace in-memory server state with durable lesson storage.
 - Share lesson schema between the standalone app and MCP server.
 - Add authentication if the connector is used beyond local testing.
+- Add backups or SQLite for safer long-term storage.
 - Add more tools for lesson versioning and Ralph Loop improvements.
 - Add automated MCP protocol tests.
-

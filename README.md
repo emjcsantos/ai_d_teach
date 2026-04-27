@@ -29,9 +29,13 @@ The current prototype scope is a Vite and React app with local lesson storage, s
 - Feedback Lab for teacher, student, and improvement notes.
 - Smoke validation for fresh and existing saved state.
 
-## Local-First Lesson Repository
+## Shared Lesson Repository
 
 Lessons are stored in the browser using `localStorage` under `ai-d-teach.lessons.v1`. Progress is stored separately under `ai-d-teach.progress.v1` so canonical lesson content can evolve without overwriting quiz attempts, notes, or completion state.
+
+When the ChatGPT App MCP server is running, the standalone app also syncs to the shared JSON-backed repository at `http://127.0.0.1:8787`. That shared repository stores lessons in `data/lessons.json` and progress in `data/progress.json`. Those data files are ignored by Git because they are local user data.
+
+If the shared server is not available, the standalone app falls back to browser `localStorage` automatically.
 
 The Feedback Lab saves teacher notes, student experience notes, and improvement notes into the progress record for the active lesson. These notes feed the Ralph Loop without changing the canonical lesson content directly.
 
@@ -80,7 +84,7 @@ npm.cmd run chatgpt:app
 npm.cmd run preview
 ```
 
-`npm.cmd run dev` starts the local Vite development server. `npm.cmd run build` runs TypeScript build checks and creates the production bundle. `npm.cmd run chatgpt:app` starts the ChatGPT Apps SDK MCP prototype server. `npm.cmd run preview` serves the built app locally.
+`npm.cmd run dev` starts the local Vite development server. `npm.cmd run build` runs TypeScript build checks and creates the production bundle. `npm.cmd run chatgpt:app` starts the ChatGPT Apps SDK MCP prototype server and shared repository API. `npm.cmd run preview` serves the built app locally.
 
 ## ChatGPT App Prototype
 

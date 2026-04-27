@@ -24,6 +24,8 @@ For the ChatGPT App prototype, start the MCP server with:
 npm.cmd run chatgpt:app
 ```
 
+When the MCP server is running, the standalone app should sync lessons and progress with the shared repository API. If the server is stopped, it should fall back to browser localStorage.
+
 ## Fresh-State Smoke Expectations
 
 Use a browser profile or localStorage state with no saved AI D Teach data.
@@ -58,6 +60,17 @@ Expected results:
 - Existing feedback notes remain attached to the correct lesson id.
 - Invalid or unreadable stored JSON falls back safely instead of crashing the app.
 - Schema changes preserve backward compatibility through migrations or explicit fallback behavior.
+
+## Shared Repository Expectations
+
+When `npm.cmd run chatgpt:app` is running:
+
+- `GET http://localhost:8787/api/lessons` returns saved lessons.
+- `POST http://localhost:8787/api/lessons` saves or updates a lesson.
+- `GET http://localhost:8787/api/progress/{lessonId}` returns normalized progress.
+- `PUT http://localhost:8787/api/progress/{lessonId}` saves quiz attempts, chat transcripts, and feedback.
+- Restarting the MCP server does not erase saved lessons or progress.
+- The standalone app still works if the server is unavailable.
 
 ## Lesson Schema Validation Expectations
 
@@ -103,6 +116,7 @@ For the Apps SDK prototype:
 
 - `npm.cmd run chatgpt:app` starts the MCP server.
 - `GET http://localhost:8787/` returns a health message.
+- `GET http://localhost:8787/api/lessons` returns durable repository data.
 - The `/mcp` endpoint accepts MCP requests.
 - `start_lesson` returns structured lesson data and the lesson widget template.
 - The lesson widget can render lesson title, steps, visuals, and quiz choices.

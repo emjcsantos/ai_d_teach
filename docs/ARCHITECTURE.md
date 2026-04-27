@@ -30,9 +30,16 @@ Current visual kinds are:
 
 These are deliberately small and data-driven so the player can support early math, vocabulary, formulas, and simple science diagrams without custom code for every lesson.
 
-### Local Lesson Repository
+### Shared Lesson Repository
 
-The lesson repository stores lessons in browser localStorage under `ai-d-teach.lessons.v1`.
+The standalone app keeps browser localStorage as an offline fallback under `ai-d-teach.lessons.v1` and `ai-d-teach.progress.v1`.
+
+When the MCP server is running, both the standalone app and ChatGPT App use the shared local JSON repository:
+
+- `data/lessons.json`
+- `data/progress.json`
+
+These files are local user data and are ignored by Git.
 
 Expected behavior:
 
@@ -42,7 +49,14 @@ Expected behavior:
 4. Save imported, starter, generated, or improved lessons back into the repository.
 5. Preserve version and schema metadata so future migrations can be explicit.
 
-Local-first storage keeps the MVP usable without accounts, servers, API keys, or local AI model setup.
+The shared server also exposes lightweight REST endpoints so the browser app can reuse the same storage as the ChatGPT App:
+
+- `GET /api/lessons`
+- `POST /api/lessons`
+- `GET /api/progress/:lessonId`
+- `PUT /api/progress/:lessonId`
+
+Local-first storage keeps the MVP usable without accounts, API keys, or local AI model setup.
 
 ### Progress And Ralph Loop Data
 
@@ -128,4 +142,4 @@ The ChatGPT App prototype uses the Apps SDK pattern:
 - `start_lesson` returns structured lesson data and attaches the widget template.
 - Widget actions can call MCP tools such as `record_quiz_answer`.
 
-The prototype server keeps lesson and progress state in memory. This should become durable storage before real family use.
+The prototype server keeps lesson and progress state in local JSON files. Production use should still add authentication, backups, and a stronger storage layer such as SQLite.
