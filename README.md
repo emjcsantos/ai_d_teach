@@ -21,11 +21,12 @@ The current prototype scope is a Vite and React app with local lesson storage, s
 - Saved lesson library.
 - Local lesson repository reuse before creating a new lesson.
 - Manual import or local starter lesson creation before optional API generation.
-- Child-facing lesson player with a mission header, read-only step path, interactive canvas, coach prompts, and a tutor-led Continue flow.
+- Child-facing lesson player with a mission header, read-only step path, instructor-led canvas tasks, coach prompts, and a tutor-led Continue flow.
 - Browser TTS narration with visible lesson text.
 - Embedded Tutor Chat for lesson-aware conversation with push-to-talk input and spoken replies when browser voice APIs are available.
 - Tutor modes and saved tutor signals for explanation, hints, understanding checks, encouragement, and step advancement.
 - Richer interactive visual scene types for fractions, vocabulary, formulas, and simple science cycles.
+- Fraction canvas practice that asks the child to select several target fractions, such as 1/4, 2/4, 3/4, and 4/4.
 - Quiz flow and completion or progress markers.
 - Feedback Lab for teacher, student, and improvement notes.
 - Smoke validation for fresh and existing saved state.

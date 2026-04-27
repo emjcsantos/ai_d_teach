@@ -1224,6 +1224,61 @@ button:disabled,
   align-items: center;
 }
 
+.instructor-card {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid rgba(231, 102, 76, 0.28);
+  border-radius: 8px;
+  background: #fff4ee;
+  box-shadow: 0 12px 24px rgba(231, 102, 76, 0.1);
+}
+
+.instructor-card div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.instructor-card span {
+  color: #9b3f2c;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.instructor-card strong {
+  color: var(--ink);
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+
+.instructor-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.instructor-progress__dot {
+  width: 12px;
+  height: 12px;
+  border: 1px solid rgba(24, 33, 47, 0.18);
+  border-radius: 999px;
+  background: #ffffff;
+}
+
+.instructor-progress__dot.is-done {
+  border-color: rgba(94, 159, 88, 0.38);
+  background: var(--leaf);
+}
+
+.instructor-progress__dot.is-current {
+  border-color: rgba(231, 102, 76, 0.48);
+  background: var(--coral);
+}
+
 .fraction-workbench {
   display: grid;
   gap: 16px;
@@ -1264,8 +1319,13 @@ button:disabled,
 }
 
 .fraction-slice:focus-visible {
-  outline: 3px solid rgba(28, 138, 138, 0.45);
-  outline-offset: 3px;
+  outline: none;
+  stroke: var(--ink);
+  stroke-width: 4;
+}
+
+.fraction-slice:focus {
+  outline: none;
 }
 
 .fraction-slice.is-selected {
@@ -1337,6 +1397,20 @@ button:disabled,
   margin: 0;
   color: #455369;
   line-height: 1.45;
+}
+
+.canvas-callout__action {
+  min-height: 40px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #ffffff;
+  font-weight: 850;
+}
+
+.canvas-callout__complete {
+  color: #3f743b;
+  font-weight: 850;
 }
 
 .study-word-card {
@@ -1751,6 +1825,11 @@ button:disabled,
   .lesson-canvas__header h2 {
     font-size: 1.35rem;
     text-align: left;
+  }
+
+  .instructor-card {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .canvas-callout strong,

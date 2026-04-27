@@ -1,8 +1,15 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import type { LessonStep, LessonVisual } from "../types/lesson";
 
+export type CanvasPracticeState = {
+  complete: boolean;
+  active: boolean;
+  prompt: string;
+};
+
 export type LessonCanvasProps = {
   step: LessonStep;
+  onPracticeStateChange?: (state: CanvasPracticeState) => void;
 };
 
 const tokenPalette = ["#1c8a8a", "#e7664c", "#6e6fbf", "#5e9f58", "#b76b1d", "#2e6fba"];
@@ -32,18 +39,67 @@ function getFractionPath(index: number, total: number) {
   return `M ${center} ${center} L ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY} Z`;
 }
 
-function FractionPizza({ visual }: { visual: Extract<LessonVisual, { kind: "fraction_pizza" }> }) {
+type FractionScenario = {
+  instruction: string;
+  success: string;
+  target: number;
+};
+
+function buildFractionScenarios(parts: number, highlightedCount: number) {
+  const targets = [highlightedCount, Math.ceil(parts / 2), Math.max(1, parts - 1), parts].filter(
+    (target, index, values) => target >= 1 && target <= parts && values.indexOf(target) === index,
+  );
+
+  return targets.map<FractionScenario>((target) => {
+    const label = `${target}/${parts}`;
+    const instruction =
+      target === parts
+        ? `Click the whole pizza: ${label}.`
+        : `Click ${label} of the pizza.`;
+    const success =
+      target === parts
+        ? "Great. The whole pizza is selected."
+        : `Yes. ${label} means ${target} out of ${parts} equal parts.`;
+
+    return { instruction, success, target };
+  });
+}
+
+function FractionPizza({
+  visual,
+  onPracticeStateChange,
+}: {
+  visual: Extract<LessonVisual, { kind: "fraction_pizza" }>;
+  onPracticeStateChange?: (state: CanvasPracticeState) => void;
+}) {
   const parts = clampInteger(visual.parts, 1, 16);
   const highlightedCount = clampInteger(visual.highlight, 0, parts);
-  const initialSelection = useMemo(
-    () => new Set(Array.from({ length: highlightedCount }, (_, index) => index)),
-    [highlightedCount],
+  const scenarios = useMemo(
+    () => buildFractionScenarios(parts, Math.max(1, highlightedCount)),
+    [highlightedCount, parts],
   );
-  const [selectedSlices, setSelectedSlices] = useState<Set<number>>(initialSelection);
+  const [scenarioIndex, setScenarioIndex] = useState(0);
+  const [selectedSlices, setSelectedSlices] = useState<Set<number>>(() => new Set());
+  const safeScenarioIndex = clampInteger(scenarioIndex, 0, scenarios.length - 1);
+  const scenario = scenarios[safeScenarioIndex];
+  const selectedCount = selectedSlices.size;
+  const matchesTarget = selectedCount === scenario.target;
+  const isLastScenario = safeScenarioIndex === scenarios.length - 1;
+  const practiceComplete = matchesTarget && isLastScenario;
+  const targetLabel = `${scenario.target}/${parts}`;
 
   useEffect(() => {
-    setSelectedSlices(initialSelection);
-  }, [initialSelection]);
+    setScenarioIndex(0);
+    setSelectedSlices(new Set());
+  }, [parts, highlightedCount]);
+
+  useEffect(() => {
+    onPracticeStateChange?.({
+      active: true,
+      complete: practiceComplete,
+      prompt: scenario.instruction,
+    });
+  }, [onPracticeStateChange, practiceComplete, scenario.instruction]);
 
   function toggleSlice(index: number) {
     setSelectedSlices((current) => {
@@ -57,15 +113,42 @@ function FractionPizza({ visual }: { visual: Extract<LessonVisual, { kind: "frac
     });
   }
 
-  const selectedCount = selectedSlices.size;
-  const matchesTarget = selectedCount === highlightedCount;
+  function moveToNextScenario() {
+    if (!matchesTarget || isLastScenario) {
+      return;
+    }
+
+    setScenarioIndex((current) => clampInteger(current + 1, 0, scenarios.length - 1));
+    setSelectedSlices(new Set());
+  }
 
   return (
     <div className="canvas-visual canvas-visual--fraction">
+      <section className="instructor-card" aria-live="polite">
+        <div>
+          <span>Teacher task</span>
+          <strong>{scenario.instruction}</strong>
+        </div>
+        <div className="instructor-progress" aria-label={`Scenario ${safeScenarioIndex + 1} of ${scenarios.length}`}>
+          {scenarios.map((item, index) => (
+            <span
+              key={`${item.target}-${index}`}
+              className={[
+                "instructor-progress__dot",
+                index < safeScenarioIndex ? "is-done" : "",
+                index === safeScenarioIndex ? "is-current" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            />
+          ))}
+        </div>
+      </section>
+
       <div className="fraction-workbench">
         <svg
           role="img"
-          aria-label={`${visual.label} pizza fraction model`}
+          aria-label={`${targetLabel} pizza fraction model`}
           viewBox="0 0 200 200"
           className="fraction-pizza-svg"
         >
@@ -94,7 +177,7 @@ function FractionPizza({ visual }: { visual: Extract<LessonVisual, { kind: "frac
           })}
           <circle cx="100" cy="100" r="35" className="fraction-center" />
           <text x="100" y="107" textAnchor="middle" className="fraction-label">
-            {visual.label}
+            {targetLabel}
           </text>
         </svg>
 
@@ -103,8 +186,8 @@ function FractionPizza({ visual }: { visual: Extract<LessonVisual, { kind: "frac
             <button
               key={index}
               type="button"
-              aria-label={`Toggle fraction bar part ${index + 1}`}
-              aria-pressed={selectedSlices.has(index)}
+                aria-label={`Toggle fraction bar part ${index + 1}`}
+                aria-pressed={selectedSlices.has(index)}
                 className={
                   selectedSlices.has(index)
                     ? "fraction-meter__part is-selected"
@@ -123,9 +206,21 @@ function FractionPizza({ visual }: { visual: Extract<LessonVisual, { kind: "frac
         </strong>
         <p>
           {matchesTarget
-            ? "Great match. The selected parts line up with the lesson."
-            : "Tap slices or bars until the model matches the target."}
+            ? scenario.success
+            : selectedCount < scenario.target
+              ? `Keep going. Select ${scenario.target - selectedCount} more part${
+                  scenario.target - selectedCount === 1 ? "" : "s"
+                }.`
+              : `Too many parts. Unclick ${selectedCount - scenario.target} part${
+                  selectedCount - scenario.target === 1 ? "" : "s"
+                }.`}
         </p>
+        {matchesTarget && !isLastScenario ? (
+          <button type="button" className="canvas-callout__action" onClick={moveToNextScenario}>
+            Next challenge
+          </button>
+        ) : null}
+        {practiceComplete ? <p className="canvas-callout__complete">All fraction challenges complete.</p> : null}
       </aside>
     </div>
   );
@@ -273,10 +368,13 @@ function FormulaBoard({ visual }: { visual: Extract<LessonVisual, { kind: "formu
   );
 }
 
-function renderVisual(visual: LessonVisual) {
+function renderVisual(
+  visual: LessonVisual,
+  onPracticeStateChange?: (state: CanvasPracticeState) => void,
+) {
   switch (visual.kind) {
     case "fraction_pizza":
-      return <FractionPizza visual={visual} />;
+      return <FractionPizza visual={visual} onPracticeStateChange={onPracticeStateChange} />;
     case "word_cards":
       return <WordCards visual={visual} />;
     case "science_cycle":
@@ -290,14 +388,14 @@ function renderVisual(visual: LessonVisual) {
   }
 }
 
-export function LessonCanvas({ step }: LessonCanvasProps) {
+export function LessonCanvas({ step, onPracticeStateChange }: LessonCanvasProps) {
   return (
     <section className="lesson-canvas" aria-labelledby={`lesson-step-${step.id}`}>
       <header className="lesson-canvas__header">
         <span>Interactive canvas</span>
         <h2 id={`lesson-step-${step.id}`}>{step.title}</h2>
       </header>
-      <div className="lesson-canvas__stage">{renderVisual(step.visual)}</div>
+      <div className="lesson-canvas__stage">{renderVisual(step.visual, onPracticeStateChange)}</div>
     </section>
   );
 }

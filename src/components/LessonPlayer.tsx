@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Play, Sparkles, Square } from "lucide-react";
 import { canSpeak, speak, stopSpeaking } from "../lib/textToSpeech";
 import type { Lesson, LessonProgress, TutorSignal, TutorTurn } from "../types/lesson";
-import { LessonCanvas } from "./LessonCanvas";
+import { LessonCanvas, type CanvasPracticeState } from "./LessonCanvas";
 import { TutorChat } from "./TutorChat";
 
 export type LessonPlayerProps = {
@@ -39,7 +39,35 @@ function getLatestStepSignal(progress: LessonProgress, stepId?: string) {
   return [...progress.tutorSignals].reverse().find((signal) => signal.stepId === stepId);
 }
 
-function getTutorGuidance(signal: TutorSignal | undefined, hasNext: boolean) {
+function getTutorGuidance(
+  signal: TutorSignal | undefined,
+  practiceState: CanvasPracticeState | undefined,
+  hasNext: boolean,
+) {
+  if (practiceState?.active && !practiceState.complete) {
+    return {
+      title: "Follow the teacher task",
+      body: practiceState.prompt,
+      label: "Do",
+    };
+  }
+
+  if (practiceState?.complete && hasNext) {
+    return {
+      title: "Teacher task complete",
+      body: "You finished the canvas challenges for this step. Continue when you are ready.",
+      label: "Ready",
+    };
+  }
+
+  if (practiceState?.complete) {
+    return {
+      title: "Ready for practice",
+      body: "You finished the canvas challenges. Try the quiz below when you are ready.",
+      label: "Ready",
+    };
+  }
+
   if (!signal) {
     return {
       title: "Tell the tutor what you notice",
@@ -97,9 +125,11 @@ export function LessonPlayer({
 }: LessonPlayerProps) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechAvailable, setSpeechAvailable] = useState(false);
+  const [practiceByStep, setPracticeByStep] = useState<Record<string, CanvasPracticeState>>({});
   const stepCount = lesson.steps.length;
   const safeStepIndex = getSafeStepIndex(stepCount, currentStepIndex);
   const currentStep = lesson.steps[safeStepIndex];
+  const currentStepId = currentStep?.id;
   const rate = useMemo(() => clamp(voiceRate, MIN_RATE, MAX_RATE), [voiceRate]);
   const progressPercent = stepCount > 0 ? Math.round(((safeStepIndex + 1) / stepCount) * 100) : 0;
 
@@ -111,6 +141,10 @@ export function LessonPlayer({
     stopSpeaking();
     setIsSpeaking(false);
   }, [currentStep?.id]);
+
+  useEffect(() => {
+    setPracticeByStep({});
+  }, [lesson.id]);
 
   useEffect(() => {
     return () => {
@@ -154,6 +188,20 @@ export function LessonPlayer({
     playNarration();
   }
 
+  const handlePracticeStateChange = useCallback(
+    (state: CanvasPracticeState) => {
+      if (!currentStepId) {
+        return;
+      }
+
+      setPracticeByStep((current) => ({
+        ...current,
+        [currentStepId]: state,
+      }));
+    },
+    [currentStepId],
+  );
+
   if (!currentStep) {
     return (
       <section className="lesson-player lesson-player--empty" aria-labelledby="lesson-player-empty-title">
@@ -166,8 +214,11 @@ export function LessonPlayer({
   const hasPrevious = safeStepIndex > 0;
   const hasNext = safeStepIndex < stepCount - 1;
   const latestStepSignal = getLatestStepSignal(progress, currentStep.id);
-  const tutorGuidance = getTutorGuidance(latestStepSignal, hasNext);
+  const practiceState = practiceByStep[currentStep.id];
+  const tutorGuidance = getTutorGuidance(latestStepSignal, practiceState, hasNext);
   const canContinueFromTutor = hasNext && latestStepSignal?.canContinue;
+  const canContinueFromPractice = hasNext && practiceState?.complete;
+  const canContinue = canContinueFromTutor || canContinueFromPractice;
 
   return (
     <section className="lesson-player" aria-label={`${lesson.topic} lesson player`}>
@@ -209,7 +260,7 @@ export function LessonPlayer({
       </ol>
 
       <div className="learning-arena">
-        <LessonCanvas step={currentStep} />
+        <LessonCanvas step={currentStep} onPracticeStateChange={handlePracticeStateChange} />
 
         <aside className="lesson-coach" aria-label="Narration and prompt controls">
           <section className="coach-card coach-card--tutor" aria-labelledby="coach-title">
@@ -261,7 +312,7 @@ export function LessonPlayer({
             <p>{tutorGuidance.body}</p>
           </section>
 
-          {hasPrevious || canContinueFromTutor ? (
+          {hasPrevious || canContinue ? (
             <div className="lesson-nav-actions">
               {hasPrevious ? (
                 <button
@@ -274,7 +325,7 @@ export function LessonPlayer({
                   <span>Back</span>
                 </button>
               ) : null}
-              {canContinueFromTutor ? (
+              {canContinue ? (
                 <button
                   type="button"
                   onClick={() => moveToStep(safeStepIndex + 1)}

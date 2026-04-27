@@ -137,6 +137,7 @@ For UI changes, check common laptop and tablet sizes. The app should:
 - Avoid text overlap.
 - Open with the interactive lesson surface first on small screens.
 - Keep the primary lesson clicks focused on the canvas, tutor conversation, and simple step navigation.
+- For fractions, verify instructor-led tasks check multiple target selections before Continue appears.
 - Show Continue only after the tutor records solid understanding for the current step.
 - Keep lesson visuals usable on smaller screens.
 - Keep quiz choices easy to select.
