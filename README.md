@@ -26,7 +26,7 @@ The current prototype scope is a Vite and React app with local lesson storage, s
 - Embedded Tutor Chat for lesson-aware conversation with push-to-talk input and spoken replies when browser voice APIs are available.
 - Tutor modes and saved tutor signals for explanation, hints, understanding checks, encouragement, and step advancement.
 - Richer interactive visual scene types for fractions, vocabulary, formulas, and simple science cycles.
-- Fraction canvas practice that asks the child to select several target fractions, such as 1/4, 2/4, 3/4, and 4/4.
+- Fraction canvas practice that speaks each teacher task and asks the child to select several target fractions, such as 1/4, 2/4, 3/4, and 4/4.
 - Quiz flow and completion or progress markers.
 - Feedback Lab for teacher, student, and improvement notes.
 - Smoke validation for fresh and existing saved state.

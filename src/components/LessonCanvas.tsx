@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { Play, Square } from "lucide-react";
+import { canSpeak, speak, stopSpeaking } from "../lib/textToSpeech";
 import type { LessonStep, LessonVisual } from "../types/lesson";
 
 export type CanvasPracticeState = {
@@ -10,6 +12,7 @@ export type CanvasPracticeState = {
 export type LessonCanvasProps = {
   step: LessonStep;
   onPracticeStateChange?: (state: CanvasPracticeState) => void;
+  voiceRate: number;
 };
 
 const tokenPalette = ["#1c8a8a", "#e7664c", "#6e6fbf", "#5e9f58", "#b76b1d", "#2e6fba"];
@@ -68,9 +71,11 @@ function buildFractionScenarios(parts: number, highlightedCount: number) {
 function FractionPizza({
   visual,
   onPracticeStateChange,
+  voiceRate,
 }: {
   visual: Extract<LessonVisual, { kind: "fraction_pizza" }>;
   onPracticeStateChange?: (state: CanvasPracticeState) => void;
+  voiceRate: number;
 }) {
   const parts = clampInteger(visual.parts, 1, 16);
   const highlightedCount = clampInteger(visual.highlight, 0, parts);
@@ -78,6 +83,8 @@ function FractionPizza({
     () => buildFractionScenarios(parts, Math.max(1, highlightedCount)),
     [highlightedCount, parts],
   );
+  const [speechAvailable, setSpeechAvailable] = useState(false);
+  const [isReadingInstruction, setIsReadingInstruction] = useState(false);
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const [selectedSlices, setSelectedSlices] = useState<Set<number>>(() => new Set());
   const safeScenarioIndex = clampInteger(scenarioIndex, 0, scenarios.length - 1);
@@ -87,6 +94,16 @@ function FractionPizza({
   const isLastScenario = safeScenarioIndex === scenarios.length - 1;
   const practiceComplete = matchesTarget && isLastScenario;
   const targetLabel = `${scenario.target}/${parts}`;
+
+  useEffect(() => {
+    setSpeechAvailable(canSpeak());
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      stopSpeaking();
+    };
+  }, []);
 
   useEffect(() => {
     setScenarioIndex(0);
@@ -100,6 +117,25 @@ function FractionPizza({
       prompt: scenario.instruction,
     });
   }, [onPracticeStateChange, practiceComplete, scenario.instruction]);
+
+  useEffect(() => {
+    setIsReadingInstruction(false);
+    if (!canSpeak()) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setIsReadingInstruction(true);
+      speak(scenario.instruction, {
+        rate: voiceRate,
+        onEnd: () => setIsReadingInstruction(false),
+      });
+    }, 80);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [scenario.instruction, voiceRate]);
 
   function toggleSlice(index: number) {
     setSelectedSlices((current) => {
@@ -122,6 +158,20 @@ function FractionPizza({
     setSelectedSlices(new Set());
   }
 
+  function toggleInstructionVoice() {
+    if (isReadingInstruction) {
+      stopSpeaking();
+      setIsReadingInstruction(false);
+      return;
+    }
+
+    setIsReadingInstruction(true);
+    speak(scenario.instruction, {
+      rate: voiceRate,
+      onEnd: () => setIsReadingInstruction(false),
+    });
+  }
+
   return (
     <div className="canvas-visual canvas-visual--fraction">
       <section className="instructor-card" aria-live="polite">
@@ -129,19 +179,31 @@ function FractionPizza({
           <span>Teacher task</span>
           <strong>{scenario.instruction}</strong>
         </div>
-        <div className="instructor-progress" aria-label={`Scenario ${safeScenarioIndex + 1} of ${scenarios.length}`}>
-          {scenarios.map((item, index) => (
-            <span
-              key={`${item.target}-${index}`}
-              className={[
-                "instructor-progress__dot",
-                index < safeScenarioIndex ? "is-done" : "",
-                index === safeScenarioIndex ? "is-current" : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-            />
-          ))}
+        <div className="instructor-card__controls">
+          <button
+            type="button"
+            className="instructor-voice"
+            disabled={!speechAvailable}
+            onClick={toggleInstructionVoice}
+            title={speechAvailable ? "Read teacher task aloud" : "Browser speech is unavailable"}
+          >
+            {isReadingInstruction ? <Square size={16} aria-hidden="true" /> : <Play size={16} aria-hidden="true" />}
+            <span>{isReadingInstruction ? "Stop" : "Read"}</span>
+          </button>
+          <div className="instructor-progress" aria-label={`Scenario ${safeScenarioIndex + 1} of ${scenarios.length}`}>
+            {scenarios.map((item, index) => (
+              <span
+                key={`${item.target}-${index}`}
+                className={[
+                  "instructor-progress__dot",
+                  index < safeScenarioIndex ? "is-done" : "",
+                  index === safeScenarioIndex ? "is-current" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              />
+            ))}
+          </div>
         </div>
       </section>
 
@@ -370,11 +432,18 @@ function FormulaBoard({ visual }: { visual: Extract<LessonVisual, { kind: "formu
 
 function renderVisual(
   visual: LessonVisual,
+  voiceRate: number,
   onPracticeStateChange?: (state: CanvasPracticeState) => void,
 ) {
   switch (visual.kind) {
     case "fraction_pizza":
-      return <FractionPizza visual={visual} onPracticeStateChange={onPracticeStateChange} />;
+      return (
+        <FractionPizza
+          visual={visual}
+          voiceRate={voiceRate}
+          onPracticeStateChange={onPracticeStateChange}
+        />
+      );
     case "word_cards":
       return <WordCards visual={visual} />;
     case "science_cycle":
@@ -388,14 +457,16 @@ function renderVisual(
   }
 }
 
-export function LessonCanvas({ step, onPracticeStateChange }: LessonCanvasProps) {
+export function LessonCanvas({ step, onPracticeStateChange, voiceRate }: LessonCanvasProps) {
   return (
     <section className="lesson-canvas" aria-labelledby={`lesson-step-${step.id}`}>
       <header className="lesson-canvas__header">
         <span>Interactive canvas</span>
         <h2 id={`lesson-step-${step.id}`}>{step.title}</h2>
       </header>
-      <div className="lesson-canvas__stage">{renderVisual(step.visual, onPracticeStateChange)}</div>
+      <div className="lesson-canvas__stage">
+        {renderVisual(step.visual, voiceRate, onPracticeStateChange)}
+      </div>
     </section>
   );
 }

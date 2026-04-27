@@ -260,7 +260,11 @@ export function LessonPlayer({
       </ol>
 
       <div className="learning-arena">
-        <LessonCanvas step={currentStep} onPracticeStateChange={handlePracticeStateChange} />
+        <LessonCanvas
+          step={currentStep}
+          voiceRate={rate}
+          onPracticeStateChange={handlePracticeStateChange}
+        />
 
         <aside className="lesson-coach" aria-label="Narration and prompt controls">
           <section className="coach-card coach-card--tutor" aria-labelledby="coach-title">

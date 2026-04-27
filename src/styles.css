@@ -1237,7 +1237,7 @@ button:disabled,
   box-shadow: 0 12px 24px rgba(231, 102, 76, 0.1);
 }
 
-.instructor-card div:first-child {
+.instructor-card > div:first-child {
   display: grid;
   gap: 4px;
 }
@@ -1253,6 +1253,31 @@ button:disabled,
   color: var(--ink);
   font-size: 1.25rem;
   line-height: 1.2;
+}
+
+.instructor-card__controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.instructor-voice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  border: 1px solid rgba(155, 63, 44, 0.24);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #9b3f2c;
+  padding: 0 10px;
+  font-weight: 850;
+}
+
+.instructor-voice:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
 }
 
 .instructor-progress {
@@ -1830,6 +1855,11 @@ button:disabled,
   .instructor-card {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .instructor-card__controls {
+    justify-content: space-between;
+    width: 100%;
   }
 
   .canvas-callout strong,

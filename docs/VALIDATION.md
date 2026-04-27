@@ -93,6 +93,7 @@ Voice validation should cover:
 
 - Browser TTS available path.
 - Browser TTS unavailable fallback.
+- Spoken teacher-task instructions and replay controls for instructor-led canvas practice.
 - Browser Speech Recognition available path.
 - Browser Speech Recognition unavailable typed fallback.
 - Push-to-talk starts only after a user action and stops after one utterance or explicit stop.
