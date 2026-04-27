@@ -23,7 +23,7 @@ The current prototype scope is a Vite and React app with local lesson storage, s
 - Manual import or local starter lesson creation before optional API generation.
 - Child-facing lesson player with a mission header, read-only step path, interactive canvas, coach prompts, and a tutor-led Continue flow.
 - Browser TTS narration with visible lesson text.
-- Embedded Tutor Chat for lesson-aware conversation with spoken replies when browser voice is available.
+- Embedded Tutor Chat for lesson-aware conversation with push-to-talk input and spoken replies when browser voice APIs are available.
 - Tutor modes and saved tutor signals for explanation, hints, understanding checks, encouragement, and step advancement.
 - Richer interactive visual scene types for fractions, vocabulary, formulas, and simple science cycles.
 - Quiz flow and completion or progress markers.
@@ -52,7 +52,7 @@ Schema compatibility matters. Future schema changes should add migrations or com
 
 ## Voice And Generation Defaults
 
-Browser text-to-speech is the default narration implementation through the Web Speech API. Higher-quality cloud or local voices can be added later, but they must remain optional and should cache generated audio per lesson when used. Tutor Chat can optionally speak its replies through the same browser voice layer.
+Browser text-to-speech is the default narration implementation through the Web Speech API. Push-to-talk speech input uses the browser Speech Recognition API when available and falls back to typed input when unavailable. Higher-quality cloud or local voices can be added later, but they must remain optional and should cache generated audio per lesson when used. Tutor Chat can speak replies through the same browser voice layer.
 
 API-based lesson generation is also optional future work. When added, it should produce validated structured lesson data, reject or repair invalid output before saving, and never assume Codex is available as the runtime backend.
 

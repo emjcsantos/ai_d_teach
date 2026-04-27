@@ -93,13 +93,16 @@ Voice validation should cover:
 
 - Browser TTS available path.
 - Browser TTS unavailable fallback.
+- Browser Speech Recognition available path.
+- Browser Speech Recognition unavailable typed fallback.
+- Push-to-talk starts only after a user action and stops after one utterance or explicit stop.
 - Stop or cancel behavior before starting a new utterance.
 - Visible narration text remaining available.
 - Optional spoken Tutor Chat replies.
 - Reasonable speaking rate controls when UI controls exist.
 - No sound-only required workflow.
 
-If speech input is added later, it should be push-to-talk and must not listen continuously by default.
+Speech input must remain push-to-talk and must not listen continuously by default.
 
 ## Ralph Loop Expectations
 

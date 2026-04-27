@@ -849,6 +849,23 @@ button:disabled,
   padding: 10px 12px;
 }
 
+.tutor-chat__speech-status {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid rgba(28, 138, 138, 0.2);
+  border-radius: 8px;
+  background: rgba(28, 138, 138, 0.08);
+  color: #176c6c;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.tutor-chat__speech-status.is-error {
+  border-color: rgba(231, 102, 76, 0.28);
+  background: rgba(231, 102, 76, 0.1);
+  color: #9b3f2c;
+}
+
 .tutor-chat__actions {
   display: flex;
   flex-wrap: wrap;
@@ -856,6 +873,7 @@ button:disabled,
   gap: 8px;
 }
 
+.tutor-chat__listen,
 .tutor-chat__stop,
 .tutor-chat__send {
   display: inline-flex;
@@ -866,6 +884,17 @@ button:disabled,
   border: 1px solid var(--line);
   border-radius: 8px;
   font-weight: 850;
+}
+
+.tutor-chat__listen {
+  background: #f2fbf9;
+  color: #176c6c;
+}
+
+.tutor-chat__listen.is-listening {
+  border-color: rgba(231, 102, 76, 0.44);
+  background: #fff1ed;
+  color: #9b3f2c;
 }
 
 .tutor-chat__stop {
