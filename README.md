@@ -76,10 +76,17 @@ Useful scripts:
 
 ```powershell
 npm.cmd run build
+npm.cmd run chatgpt:app
 npm.cmd run preview
 ```
 
-`npm.cmd run dev` starts the local Vite development server. `npm.cmd run build` runs TypeScript build checks and creates the production bundle. `npm.cmd run preview` serves the built app locally.
+`npm.cmd run dev` starts the local Vite development server. `npm.cmd run build` runs TypeScript build checks and creates the production bundle. `npm.cmd run chatgpt:app` starts the ChatGPT Apps SDK MCP prototype server. `npm.cmd run preview` serves the built app locally.
+
+## ChatGPT App Prototype
+
+The repo includes a first Apps SDK prototype so ChatGPT can act as the tutor brain while AI D Teach renders the interactive lesson canvas as a ChatGPT component.
+
+See [docs/CHATGPT_APP.md](docs/CHATGPT_APP.md) for setup and connector instructions.
 
 ## Validation
 

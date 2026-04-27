@@ -117,3 +117,15 @@ The current prototype scope is intentionally narrow:
 - Lightweight progress and notes, not a full analytics system.
 
 These boundaries keep the MVP easy to run on Windows and leave clear upgrade points for future agents.
+
+## ChatGPT App Architecture
+
+The ChatGPT App prototype uses the Apps SDK pattern:
+
+- ChatGPT is the conversational tutor.
+- `server/apps-sdk-server.mjs` exposes an MCP endpoint at `/mcp`.
+- `public/lesson-widget.html` renders the interactive lesson canvas inside ChatGPT.
+- `start_lesson` returns structured lesson data and attaches the widget template.
+- Widget actions can call MCP tools such as `record_quiz_answer`.
+
+The prototype server keeps lesson and progress state in memory. This should become durable storage before real family use.

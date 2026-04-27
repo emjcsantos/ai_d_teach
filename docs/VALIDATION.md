@@ -18,6 +18,12 @@ npm.cmd run dev
 
 Use `npm.cmd` on Windows so the commands resolve consistently in PowerShell and agent environments.
 
+For the ChatGPT App prototype, start the MCP server with:
+
+```powershell
+npm.cmd run chatgpt:app
+```
+
 ## Fresh-State Smoke Expectations
 
 Use a browser profile or localStorage state with no saved AI D Teach data.
@@ -90,6 +96,19 @@ For progress and improvement changes, validate that:
 - Improved lesson content can become a new version.
 - Older lesson versions remain identifiable for comparison or rollback when versioning support exists.
 - Review recommendations can be traced back to missed concepts or feedback.
+
+## ChatGPT App Validation
+
+For the Apps SDK prototype:
+
+- `npm.cmd run chatgpt:app` starts the MCP server.
+- `GET http://localhost:8787/` returns a health message.
+- The `/mcp` endpoint accepts MCP requests.
+- `start_lesson` returns structured lesson data and the lesson widget template.
+- The lesson widget can render lesson title, steps, visuals, and quiz choices.
+- Widget quiz answers can call `record_quiz_answer`.
+
+For ChatGPT testing, expose port `8787` with an HTTPS tunnel and add the `/mcp` URL as a connector in ChatGPT Developer Mode.
 
 ## Responsive And UI Smoke Expectations
 

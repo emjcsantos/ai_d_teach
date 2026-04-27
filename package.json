@@ -6,14 +6,18 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
+    "chatgpt:app": "node server/apps-sdk-server.mjs",
     "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.7.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@vitejs/plugin-react": "^5.0.0",
     "lucide-react": "^0.468.0",
-    "vite": "^6.0.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "vite": "^6.0.0",
+    "zod": "^3.25.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",
@@ -21,4 +25,3 @@
     "typescript": "^5.6.3"
   }
 }
-
