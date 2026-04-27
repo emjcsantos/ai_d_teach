@@ -32,6 +32,7 @@ Expected results:
 - Narration text is visible even if audio is unavailable.
 - Browser TTS works when `speechSynthesis` is supported.
 - Quiz flow records attempts and explanations.
+- Feedback Lab can save teacher, student, and improvement notes.
 - Progress or completion state is saved separately from lesson content.
 
 ## Existing Saved-State Expectations
@@ -46,6 +47,7 @@ Expected results:
 - Saved lessons load without being overwritten by bundled samples.
 - Matching topic and grade searches reuse saved lessons before creating new ones.
 - Existing progress remains attached to the correct lesson id.
+- Existing feedback notes remain attached to the correct lesson id.
 - Invalid or unreadable stored JSON falls back safely instead of crashing the app.
 - Schema changes preserve backward compatibility through migrations or explicit fallback behavior.
 

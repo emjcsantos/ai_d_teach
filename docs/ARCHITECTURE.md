@@ -59,6 +59,8 @@ Progress can include:
 
 This separation supports the Ralph Loop: run, assess, listen, learn, patch, version, and reuse. Improved lessons should be saved as new versions rather than overwriting history without traceability.
 
+The current Feedback Lab writes teacher, student, and improvement notes into the progress record for the selected lesson. This keeps tester feedback close to quiz attempts and completion state while preserving the saved lesson as reusable canonical content.
+
 ### Voice Layer
 
 Browser text-to-speech is the default voice implementation. The current voice helper uses `speechSynthesis` when available and falls back to visible narration text when speech is unavailable.

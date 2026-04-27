@@ -25,11 +25,14 @@ The current prototype scope is a Vite and React app with local lesson storage, s
 - Browser TTS narration with visible lesson text.
 - Basic visual scene types for math, vocabulary, formulas, and simple science diagrams.
 - Quiz flow and completion or progress markers.
+- Feedback Lab for teacher, student, and improvement notes.
 - Smoke validation for fresh and existing saved state.
 
 ## Local-First Lesson Repository
 
 Lessons are stored in the browser using `localStorage` under `ai-d-teach.lessons.v1`. Progress is stored separately under `ai-d-teach.progress.v1` so canonical lesson content can evolve without overwriting quiz attempts, notes, or completion state.
+
+The Feedback Lab saves teacher notes, student experience notes, and improvement notes into the progress record for the active lesson. These notes feed the Ralph Loop without changing the canonical lesson content directly.
 
 On fresh state, the repository seeds bundled sample lessons. When a parent asks for a topic, the app should check the saved repository first and reuse a matching lesson before creating, importing, or eventually requesting a new generated lesson.
 

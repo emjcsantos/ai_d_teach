@@ -7,6 +7,7 @@ import { LessonComposer } from "./components/LessonComposer";
 import { LessonLibrary } from "./components/LessonLibrary";
 import { LessonPlayer } from "./components/LessonPlayer";
 import { QuizPanel } from "./components/QuizPanel";
+import { FeedbackPanel, type FeedbackKind } from "./components/FeedbackPanel";
 import type { Difficulty, GradeLevel, Lesson } from "./types/lesson";
 
 export default function App() {
@@ -20,6 +21,8 @@ export default function App() {
     () => getLessonProgress(activeLesson.id),
     [activeLesson.id, progressVersion],
   );
+  const feedbackCount =
+    progress.teacherNotes.length + progress.studentNotes.length + progress.improvementNotes.length;
 
   function selectLesson(lesson: Lesson) {
     setActiveLesson(lesson);
@@ -77,6 +80,28 @@ export default function App() {
     setProgressVersion((version) => version + 1);
   }
 
+  function handleAddFeedback(kind: FeedbackKind, note: string) {
+    const currentProgress = getLessonProgress(activeLesson.id);
+    const stampedNote = `${new Date().toLocaleDateString()}: ${note}`;
+
+    updateLessonProgress({
+      ...currentProgress,
+      teacherNotes:
+        kind === "teacher"
+          ? [...currentProgress.teacherNotes, stampedNote]
+          : currentProgress.teacherNotes,
+      studentNotes:
+        kind === "student"
+          ? [...currentProgress.studentNotes, stampedNote]
+          : currentProgress.studentNotes,
+      improvementNotes:
+        kind === "improvement"
+          ? [...currentProgress.improvementNotes, stampedNote]
+          : currentProgress.improvementNotes,
+    });
+    setProgressVersion((version) => version + 1);
+  }
+
   return (
     <main className="app-shell">
       <aside className="control-rail" aria-label="Lesson setup and library">
@@ -121,10 +146,12 @@ export default function App() {
           onComplete={handleCompleteLesson}
         />
 
+        <FeedbackPanel lesson={activeLesson} progress={progress} onAddNote={handleAddFeedback} />
+
         <section className="ralph-panel">
           <div className="section-heading">
             <span>Ralph Loop</span>
-            <strong>{progress.completedAt ? "Ready to improve" : "Collecting signals"}</strong>
+            <strong>{feedbackCount > 0 ? "Feedback captured" : "Collecting signals"}</strong>
           </div>
           <p>
             Quiz attempts, replayed steps, teacher notes, and student feedback will become versioned
@@ -138,6 +165,10 @@ export default function App() {
             <div>
               <dt>Lesson version</dt>
               <dd>v{activeLesson.version}</dd>
+            </div>
+            <div>
+              <dt>Feedback notes</dt>
+              <dd>{feedbackCount}</dd>
             </div>
           </dl>
         </section>
