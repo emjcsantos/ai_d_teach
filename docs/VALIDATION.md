@@ -31,6 +31,7 @@ Expected results:
 - Lesson player can render structured steps and visual data.
 - Narration text is visible even if audio is unavailable.
 - Browser TTS works when `speechSynthesis` is supported.
+- Tutor Chat can answer a typed question about the current lesson.
 - Quiz flow records attempts and explanations.
 - Feedback Lab can save teacher, student, and improvement notes.
 - Progress or completion state is saved separately from lesson content.
@@ -47,6 +48,7 @@ Expected results:
 - Saved lessons load without being overwritten by bundled samples.
 - Matching topic and grade searches reuse saved lessons before creating new ones.
 - Existing progress remains attached to the correct lesson id.
+- Existing tutor chat transcripts remain attached to the correct lesson id.
 - Existing feedback notes remain attached to the correct lesson id.
 - Invalid or unreadable stored JSON falls back safely instead of crashing the app.
 - Schema changes preserve backward compatibility through migrations or explicit fallback behavior.
@@ -73,6 +75,7 @@ Voice validation should cover:
 - Browser TTS unavailable fallback.
 - Stop or cancel behavior before starting a new utterance.
 - Visible narration text remaining available.
+- Optional spoken Tutor Chat replies.
 - Reasonable speaking rate controls when UI controls exist.
 - No sound-only required workflow.
 

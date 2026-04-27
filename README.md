@@ -23,6 +23,7 @@ The current prototype scope is a Vite and React app with local lesson storage, s
 - Manual import or local starter lesson creation before optional API generation.
 - Interactive lesson player for structured steps.
 - Browser TTS narration with visible lesson text.
+- Tutor Chat for lesson-aware conversation and optional spoken replies.
 - Basic visual scene types for math, vocabulary, formulas, and simple science diagrams.
 - Quiz flow and completion or progress markers.
 - Feedback Lab for teacher, student, and improvement notes.
@@ -34,6 +35,8 @@ Lessons are stored in the browser using `localStorage` under `ai-d-teach.lessons
 
 The Feedback Lab saves teacher notes, student experience notes, and improvement notes into the progress record for the active lesson. These notes feed the Ralph Loop without changing the canonical lesson content directly.
 
+Tutor Chat messages are also saved in progress. The current MVP uses a local lesson-aware tutor brain, so conversation works without an API key. A future API tutor can replace the response logic while keeping the same saved transcript shape.
+
 On fresh state, the repository seeds bundled sample lessons. When a parent asks for a topic, the app should check the saved repository first and reuse a matching lesson before creating, importing, or eventually requesting a new generated lesson.
 
 ## Structured Lesson Schema
@@ -44,7 +47,7 @@ Schema compatibility matters. Future schema changes should add migrations or com
 
 ## Voice And Generation Defaults
 
-Browser text-to-speech is the default narration implementation through the Web Speech API. Higher-quality cloud or local voices can be added later, but they must remain optional and should cache generated audio per lesson when used.
+Browser text-to-speech is the default narration implementation through the Web Speech API. Higher-quality cloud or local voices can be added later, but they must remain optional and should cache generated audio per lesson when used. Tutor Chat can optionally speak its replies through the same browser voice layer.
 
 API-based lesson generation is also optional future work. When added, it should produce validated structured lesson data, reject or repair invalid output before saving, and never assume Codex is available as the runtime backend.
 

@@ -56,10 +56,13 @@ Progress can include:
 - Teacher notes.
 - Student notes.
 - Improvement notes.
+- Tutor chat transcript.
 
 This separation supports the Ralph Loop: run, assess, listen, learn, patch, version, and reuse. Improved lessons should be saved as new versions rather than overwriting history without traceability.
 
 The current Feedback Lab writes teacher, student, and improvement notes into the progress record for the selected lesson. This keeps tester feedback close to quiz attempts and completion state while preserving the saved lesson as reusable canonical content.
+
+Tutor Chat writes student and tutor messages into the same progress record. The MVP response layer is local and deterministic: it uses the selected lesson, current step, quiz state, and message intent to answer. A future API-backed tutor should keep this transcript contract stable.
 
 ### Voice Layer
 
@@ -74,6 +77,8 @@ Future voice improvements can add:
 - Push-to-talk speech input if voice input is added.
 
 Always keep visible lesson text available. The app should not require sound-only learning.
+
+Tutor Chat replies can be spoken through browser TTS when the user toggles voice replies on. Text conversation remains the primary path.
 
 ### Optional Lesson Generation
 
@@ -96,8 +101,9 @@ Manual import and local starter lessons should remain available even when API ge
 4. If not found, the app creates or imports a structured lesson locally. Optional API generation can be added later.
 5. Lesson player renders steps, visuals, narration, prompts, and quiz questions.
 6. Browser TTS narrates while visible text remains available.
-7. Quiz attempts, notes, and progress are saved separately.
-8. Feedback and results feed the Ralph Loop for future lesson versions.
+7. Tutor Chat can answer lesson-aware questions and save the transcript.
+8. Quiz attempts, notes, and progress are saved separately.
+9. Feedback and results feed the Ralph Loop for future lesson versions.
 
 ## Current Prototype Boundaries
 

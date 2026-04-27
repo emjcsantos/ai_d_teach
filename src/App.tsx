@@ -8,7 +8,9 @@ import { LessonLibrary } from "./components/LessonLibrary";
 import { LessonPlayer } from "./components/LessonPlayer";
 import { QuizPanel } from "./components/QuizPanel";
 import { FeedbackPanel, type FeedbackKind } from "./components/FeedbackPanel";
-import type { Difficulty, GradeLevel, Lesson } from "./types/lesson";
+import { TutorChat } from "./components/TutorChat";
+import { buildTutorReply } from "./lib/tutorBrain";
+import type { ChatMessage, Difficulty, GradeLevel, Lesson } from "./types/lesson";
 
 export default function App() {
   const [lessons, setLessons] = useState<Lesson[]>(() => loadLessons());
@@ -23,6 +25,21 @@ export default function App() {
   );
   const feedbackCount =
     progress.teacherNotes.length + progress.studentNotes.length + progress.improvementNotes.length;
+  const conversationCount = progress.chatMessages.filter((message) => message.role === "student").length;
+
+  function createChatMessage(
+    role: ChatMessage["role"],
+    text: string,
+    stepId?: string,
+  ): ChatMessage {
+    return {
+      id: `${role}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      role,
+      text,
+      stepId,
+      createdAt: new Date().toISOString(),
+    };
+  }
 
   function selectLesson(lesson: Lesson) {
     setActiveLesson(lesson);
@@ -102,6 +119,29 @@ export default function App() {
     setProgressVersion((version) => version + 1);
   }
 
+  function handleSendTutorMessage(message: string) {
+    const currentStep = activeLesson.steps[currentStepIndex] ?? activeLesson.steps[0];
+    const currentProgress = getLessonProgress(activeLesson.id);
+    const reply = currentStep
+      ? buildTutorReply({
+          lesson: activeLesson,
+          currentStep,
+          message,
+          progress: currentProgress,
+        })
+      : `This lesson needs at least one step before I can tutor it. Add a lesson step for ${activeLesson.topic}, then ask me again.`;
+    const userMessage = createChatMessage("student", message, currentStep?.id);
+    const tutorMessage = createChatMessage("tutor", reply, currentStep?.id);
+
+    updateLessonProgress({
+      ...currentProgress,
+      chatMessages: [...currentProgress.chatMessages, userMessage, tutorMessage],
+    });
+    setProgressVersion((version) => version + 1);
+
+    return reply;
+  }
+
   return (
     <main className="app-shell">
       <aside className="control-rail" aria-label="Lesson setup and library">
@@ -139,6 +179,13 @@ export default function App() {
       </section>
 
       <aside className="insight-rail" aria-label="Quiz and progress">
+        <TutorChat
+          lesson={activeLesson}
+          progress={progress}
+          voiceRate={voiceRate}
+          onSendMessage={handleSendTutorMessage}
+        />
+
         <QuizPanel
           lesson={activeLesson}
           progress={progress}
@@ -169,6 +216,10 @@ export default function App() {
             <div>
               <dt>Feedback notes</dt>
               <dd>{feedbackCount}</dd>
+            </div>
+            <div>
+              <dt>Conversations</dt>
+              <dd>{conversationCount}</dd>
             </div>
           </dl>
         </section>

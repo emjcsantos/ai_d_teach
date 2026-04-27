@@ -40,6 +40,14 @@ export type QuizQuestion = {
   explanation: string;
 };
 
+export type ChatMessage = {
+  id: string;
+  role: "student" | "tutor";
+  text: string;
+  createdAt: string;
+  stepId?: string;
+};
+
 export type Lesson = {
   id: string;
   schemaVersion: 1;
@@ -69,5 +77,5 @@ export type LessonProgress = {
   teacherNotes: string[];
   studentNotes: string[];
   improvementNotes: string[];
+  chatMessages: ChatMessage[];
 };
-
