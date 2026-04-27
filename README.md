@@ -21,10 +21,10 @@ The current prototype scope is a Vite and React app with local lesson storage, s
 - Saved lesson library.
 - Local lesson repository reuse before creating a new lesson.
 - Manual import or local starter lesson creation before optional API generation.
-- Interactive lesson player for structured steps.
+- Child-facing lesson player with a mission header, step path, interactive canvas, coach prompts, and voice controls.
 - Browser TTS narration with visible lesson text.
 - Tutor Chat for lesson-aware conversation and optional spoken replies.
-- Basic visual scene types for math, vocabulary, formulas, and simple science diagrams.
+- Richer interactive visual scene types for fractions, vocabulary, formulas, and simple science cycles.
 - Quiz flow and completion or progress markers.
 - Feedback Lab for teacher, student, and improvement notes.
 - Smoke validation for fresh and existing saved state.

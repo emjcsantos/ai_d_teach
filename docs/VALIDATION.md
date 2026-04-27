@@ -130,6 +130,7 @@ For UI changes, check common laptop and tablet sizes. The app should:
 
 - Keep controls readable.
 - Avoid text overlap.
+- Open with the interactive lesson surface first on small screens.
 - Keep lesson visuals usable on smaller screens.
 - Keep quiz choices easy to select.
 - Preserve visible narration and prompts while TTS controls are used.
