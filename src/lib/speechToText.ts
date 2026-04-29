@@ -47,6 +47,24 @@ export type SpeechListenerOptions = {
   onInterimTranscript: (transcript: string) => void;
 };
 
+function getSpeechErrorMessage(error?: string, message?: string) {
+  switch (error) {
+    case "network":
+      return "Voice input could not reach the browser speech service. Type your question instead, or try Talk again in Chrome or Edge with internet access.";
+    case "not-allowed":
+    case "service-not-allowed":
+      return "Microphone access is blocked. Allow microphone permission for this site, then try Talk again.";
+    case "no-speech":
+      return "I did not hear anything. Try Talk again, or type your question.";
+    case "audio-capture":
+      return "No microphone was found. Check your microphone, or type your question.";
+    case "aborted":
+      return "Voice input stopped. You can try Talk again or type your question.";
+    default:
+      return message || error || "Speech recognition stopped. Type your question instead.";
+  }
+}
+
 function getSpeechRecognitionConstructor() {
   if (typeof window === "undefined") {
     return undefined;
@@ -85,7 +103,7 @@ export function createSpeechListener({
   recognition.maxAlternatives = 1;
   recognition.onend = onEnd;
   recognition.onerror = (event) => {
-    onError(event.message || event.error || "Speech recognition stopped.");
+    onError(getSpeechErrorMessage(event.error, event.message));
   };
   recognition.onresult = (event) => {
     let finalTranscript = "";

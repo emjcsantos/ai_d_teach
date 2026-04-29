@@ -110,6 +110,7 @@ Voice validation should cover:
 - Teacher-task instructions stay visible and can be spoken with explicit Read and Stop controls.
 - Browser Speech Recognition available path.
 - Browser Speech Recognition unavailable typed fallback.
+- Browser Speech Recognition `network`, permission, and no-speech errors show child-readable fallback guidance instead of raw browser error codes.
 - Push-to-talk starts only after a user action and stops after one utterance or explicit stop.
 - Stop or cancel behavior before starting a new utterance.
 - Visible narration text remaining available.
