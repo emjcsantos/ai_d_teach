@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Play, Sparkles, Square } from "lucide-react";
 import { canSpeak, speak, stopSpeaking } from "../lib/textToSpeech";
 import type { Lesson, LessonProgress, TutorSignal, TutorTurn } from "../types/lesson";
-import { LessonCanvas, type CanvasPracticeState } from "./LessonCanvas";
+import { LessonCanvas, type CanvasActivityAttempt, type CanvasPracticeState } from "./LessonCanvas";
 import { TutorChat } from "./TutorChat";
 
 export type LessonPlayerProps = {
@@ -11,6 +11,7 @@ export type LessonPlayerProps = {
   onStepChange: (index: number) => void;
   progress: LessonProgress;
   onSendMessage: (message: string) => TutorTurn;
+  onActivityAttempt: (attempt: CanvasActivityAttempt) => void;
   voiceRate: number;
 };
 
@@ -121,6 +122,7 @@ export function LessonPlayer({
   onStepChange,
   progress,
   onSendMessage,
+  onActivityAttempt,
   voiceRate,
 }: LessonPlayerProps) {
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -264,6 +266,7 @@ export function LessonPlayer({
           step={currentStep}
           voiceRate={rate}
           onPracticeStateChange={handlePracticeStateChange}
+          onActivityAttempt={onActivityAttempt}
         />
 
         <aside className="lesson-coach" aria-label="Narration and prompt controls">

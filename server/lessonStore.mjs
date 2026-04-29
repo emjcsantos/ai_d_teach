@@ -48,6 +48,7 @@ function createEmptyProgress(lessonId) {
     improvementNotes: [],
     chatMessages: [],
     tutorSignals: [],
+    activityAttempts: [],
   };
 }
 
@@ -62,6 +63,7 @@ function normalizeProgress(lessonId, progress = {}) {
     improvementNotes: Array.isArray(progress.improvementNotes) ? progress.improvementNotes : [],
     chatMessages: Array.isArray(progress.chatMessages) ? progress.chatMessages : [],
     tutorSignals: Array.isArray(progress.tutorSignals) ? progress.tutorSignals : [],
+    activityAttempts: Array.isArray(progress.activityAttempts) ? progress.activityAttempts : [],
   };
 }
 

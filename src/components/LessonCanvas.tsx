@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Play, Square } from "lucide-react";
 import { canSpeak, speak, stopSpeaking } from "../lib/textToSpeech";
-import type { LessonStep, LessonVisual } from "../types/lesson";
+import type { LessonActivityTask, LessonStep, LessonVisual } from "../types/lesson";
 
 export type CanvasPracticeState = {
   complete: boolean;
@@ -9,9 +9,18 @@ export type CanvasPracticeState = {
   prompt: string;
 };
 
+export type CanvasActivityAttempt = {
+  stepId: string;
+  taskId: string;
+  taskKind: LessonActivityTask["kind"];
+  response: string;
+  correct: boolean;
+};
+
 export type LessonCanvasProps = {
   step: LessonStep;
   onPracticeStateChange?: (state: CanvasPracticeState) => void;
+  onActivityAttempt?: (attempt: CanvasActivityAttempt) => void;
   voiceRate: number;
 };
 
@@ -43,8 +52,10 @@ function getFractionPath(index: number, total: number) {
 }
 
 type FractionScenario = {
+  id: string;
   instruction: string;
   success: string;
+  hint?: string;
   target: number;
 };
 
@@ -52,7 +63,18 @@ function buildFractionScenarios(
   parts: number,
   highlightedCount: number,
   practiceTargets?: number[],
+  teacherTasks?: Extract<LessonActivityTask, { kind: "select_fraction_count" }>[],
 ) {
+  if (teacherTasks?.length) {
+    return teacherTasks.map<FractionScenario>((task) => ({
+      id: task.id,
+      instruction: task.instruction,
+      success: task.success,
+      hint: task.hint,
+      target: task.targetCount,
+    }));
+  }
+
   const validTargets = (practiceTargets?.length ? practiceTargets : [highlightedCount]).filter(
     (target, index, values) => target >= 1 && target <= parts && values.indexOf(target) === index,
   );
@@ -69,8 +91,17 @@ function buildFractionScenarios(
         ? "Great. The whole pizza is selected."
         : `Yes. ${label} means ${target} out of ${parts} equal parts.`;
 
-    return { instruction, success, target };
+    return { id: `fraction-${target}-${parts}`, instruction, success, target };
   });
+}
+
+function getTasksForKind<TKind extends LessonActivityTask["kind"]>(
+  step: LessonStep,
+  kind: TKind,
+) {
+  return (step.teacherTasks ?? []).filter(
+    (task): task is Extract<LessonActivityTask, { kind: TKind }> => task.kind === kind,
+  );
 }
 
 function InstructorTaskCard({
@@ -153,18 +184,22 @@ function InstructorTaskCard({
 
 function FractionPizza({
   visual,
+  tasks,
   onPracticeStateChange,
+  onActivityAttempt,
   voiceRate,
 }: {
   visual: Extract<LessonVisual, { kind: "fraction_pizza" }>;
+  tasks: Extract<LessonActivityTask, { kind: "select_fraction_count" }>[];
   onPracticeStateChange?: (state: CanvasPracticeState) => void;
+  onActivityAttempt?: (attempt: Omit<CanvasActivityAttempt, "stepId">) => void;
   voiceRate: number;
 }) {
   const parts = clampInteger(visual.parts, 1, 16);
   const highlightedCount = clampInteger(visual.highlight, 0, parts);
   const scenarios = useMemo(
-    () => buildFractionScenarios(parts, Math.max(1, highlightedCount), visual.practiceTargets),
-    [highlightedCount, parts, visual.practiceTargets],
+    () => buildFractionScenarios(parts, Math.max(1, highlightedCount), visual.practiceTargets, tasks),
+    [highlightedCount, parts, tasks, visual.practiceTargets],
   );
   const [scenarioIndex, setScenarioIndex] = useState(0);
   const [selectedSlices, setSelectedSlices] = useState<Set<number>>(() => new Set());
@@ -189,6 +224,15 @@ function FractionPizza({
     });
   }, [onPracticeStateChange, practiceComplete, scenario.instruction]);
 
+  function reportFractionAttempt(nextSelectedCount: number) {
+    onActivityAttempt?.({
+      taskId: scenario.id,
+      taskKind: "select_fraction_count",
+      response: `${nextSelectedCount}/${parts}`,
+      correct: nextSelectedCount === scenario.target,
+    });
+  }
+
   function toggleSlice(index: number) {
     setSelectedSlices((current) => {
       const next = new Set(current);
@@ -197,6 +241,7 @@ function FractionPizza({
       } else {
         next.add(index);
       }
+      reportFractionAttempt(next.size);
       return next;
     });
   }
@@ -282,7 +327,8 @@ function FractionPizza({
           {matchesTarget
             ? scenario.success
             : selectedCount < scenario.target
-              ? `Keep going. Select ${scenario.target - selectedCount} more part${
+              ? scenario.hint ??
+                `Keep going. Select ${scenario.target - selectedCount} more part${
                   scenario.target - selectedCount === 1 ? "" : "s"
                 }.`
               : `Too many parts. Unclick ${selectedCount - scenario.target} part${
@@ -300,12 +346,29 @@ function FractionPizza({
   );
 }
 
-function WordCards({ visual }: { visual: Extract<LessonVisual, { kind: "word_cards" }> }) {
+function WordCards({
+  visual,
+  tasks,
+  onPracticeStateChange,
+  onActivityAttempt,
+  voiceRate,
+}: {
+  visual: Extract<LessonVisual, { kind: "word_cards" }>;
+  tasks: Extract<LessonActivityTask, { kind: "tap_word_card" }>[];
+  onPracticeStateChange?: (state: CanvasPracticeState) => void;
+  onActivityAttempt?: (attempt: Omit<CanvasActivityAttempt, "stepId">) => void;
+  voiceRate: number;
+}) {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [taskIndex, setTaskIndex] = useState(0);
+  const safeTaskIndex = clampInteger(taskIndex, 0, Math.max(0, tasks.length - 1));
+  const task = tasks[safeTaskIndex];
+  const taskSignature = tasks.map((item) => item.id).join("|");
 
   useEffect(() => {
     setSelectedIndex(0);
-  }, [visual.words]);
+    setTaskIndex(0);
+  }, [taskSignature, visual.words]);
 
   if (visual.words.length === 0) {
     return <p className="canvas-empty">No vocabulary cards for this step yet.</p>;
@@ -313,9 +376,49 @@ function WordCards({ visual }: { visual: Extract<LessonVisual, { kind: "word_car
 
   const safeSelectedIndex = clampInteger(selectedIndex, 0, visual.words.length - 1);
   const selectedWord = visual.words[safeSelectedIndex];
+  const selectedMatchesTask =
+    Boolean(task) && selectedWord.term.trim().toLowerCase() === task.target.trim().toLowerCase();
+  const isLastTask = safeTaskIndex === tasks.length - 1;
+  const practiceComplete = Boolean(task) && selectedMatchesTask && isLastTask;
+
+  useEffect(() => {
+    onPracticeStateChange?.({
+      active: tasks.length > 0,
+      complete: practiceComplete,
+      prompt: task?.instruction ?? "",
+    });
+  }, [onPracticeStateChange, practiceComplete, task?.instruction, tasks.length]);
+
+  function chooseWord(index: number) {
+    const word = visual.words[index];
+    const correct = Boolean(task) && word.term.trim().toLowerCase() === task.target.trim().toLowerCase();
+    setSelectedIndex(index);
+    if (task) {
+      onActivityAttempt?.({
+        taskId: task.id,
+        taskKind: "tap_word_card",
+        response: word.term,
+        correct,
+      });
+    }
+  }
+
+  function moveToNextTask() {
+    if (selectedMatchesTask && !isLastTask) {
+      setTaskIndex((current) => clampInteger(current + 1, 0, tasks.length - 1));
+    }
+  }
 
   return (
     <div className="canvas-visual canvas-visual--words">
+      {task ? (
+        <InstructorTaskCard
+          current={safeTaskIndex}
+          instruction={task.instruction}
+          total={tasks.length}
+          voiceRate={voiceRate}
+        />
+      ) : null}
       <div className="word-card-grid" aria-label="Vocabulary cards">
         {visual.words.map((word, index) => {
           const selected = safeSelectedIndex === index;
@@ -325,7 +428,7 @@ function WordCards({ visual }: { visual: Extract<LessonVisual, { kind: "word_car
               type="button"
               aria-pressed={selected}
               className={selected ? "study-word-card is-selected" : "study-word-card"}
-              onClick={() => setSelectedIndex(index)}
+              onClick={() => chooseWord(index)}
             >
               <span className="study-word-card__term">{word.term}</span>
               <span className="study-word-card__hint">Reveal meaning</span>
@@ -337,18 +440,46 @@ function WordCards({ visual }: { visual: Extract<LessonVisual, { kind: "word_car
       <aside className="word-meaning-card" aria-live="polite">
         <span>Meaning</span>
         <strong>{selectedWord.term}</strong>
-        <p>{selectedWord.meaning}</p>
+        <p>
+          {task
+            ? selectedMatchesTask
+              ? task.success
+              : task.hint ?? selectedWord.meaning
+            : selectedWord.meaning}
+        </p>
+        {task && selectedMatchesTask && !isLastTask ? (
+          <button type="button" className="canvas-callout__action" onClick={moveToNextTask}>
+            Next task
+          </button>
+        ) : null}
       </aside>
     </div>
   );
 }
 
-function ScienceCycle({ visual }: { visual: Extract<LessonVisual, { kind: "science_cycle" }> }) {
+function ScienceCycle({
+  visual,
+  tasks,
+  onPracticeStateChange,
+  onActivityAttempt,
+  voiceRate,
+}: {
+  visual: Extract<LessonVisual, { kind: "science_cycle" }>;
+  tasks: Extract<LessonActivityTask, { kind: "tap_cycle_node" }>[];
+  onPracticeStateChange?: (state: CanvasPracticeState) => void;
+  onActivityAttempt?: (attempt: Omit<CanvasActivityAttempt, "stepId">) => void;
+  voiceRate: number;
+}) {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [taskIndex, setTaskIndex] = useState(0);
+  const safeTaskIndex = clampInteger(taskIndex, 0, Math.max(0, tasks.length - 1));
+  const task = tasks[safeTaskIndex];
+  const taskSignature = tasks.map((item) => item.id).join("|");
 
   useEffect(() => {
     setSelectedIndex(0);
-  }, [visual.nodes]);
+    setTaskIndex(0);
+  }, [taskSignature, visual.nodes]);
 
   if (visual.nodes.length === 0) {
     return <p className="canvas-empty">No cycle nodes for this step yet.</p>;
@@ -357,9 +488,49 @@ function ScienceCycle({ visual }: { visual: Extract<LessonVisual, { kind: "scien
   const total = visual.nodes.length;
   const safeSelectedIndex = clampInteger(selectedIndex, 0, total - 1);
   const selectedNode = visual.nodes[safeSelectedIndex];
+  const selectedMatchesTask =
+    Boolean(task) && selectedNode.trim().toLowerCase() === task.target.trim().toLowerCase();
+  const isLastTask = safeTaskIndex === tasks.length - 1;
+  const practiceComplete = Boolean(task) && selectedMatchesTask && isLastTask;
+
+  useEffect(() => {
+    onPracticeStateChange?.({
+      active: tasks.length > 0,
+      complete: practiceComplete,
+      prompt: task?.instruction ?? "",
+    });
+  }, [onPracticeStateChange, practiceComplete, task?.instruction, tasks.length]);
+
+  function chooseNode(index: number) {
+    const node = visual.nodes[index];
+    const correct = Boolean(task) && node.trim().toLowerCase() === task.target.trim().toLowerCase();
+    setSelectedIndex(index);
+    if (task) {
+      onActivityAttempt?.({
+        taskId: task.id,
+        taskKind: "tap_cycle_node",
+        response: node,
+        correct,
+      });
+    }
+  }
+
+  function moveToNextTask() {
+    if (selectedMatchesTask && !isLastTask) {
+      setTaskIndex((current) => clampInteger(current + 1, 0, tasks.length - 1));
+    }
+  }
 
   return (
     <div className="canvas-visual canvas-visual--cycle">
+      {task ? (
+        <InstructorTaskCard
+          current={safeTaskIndex}
+          instruction={task.instruction}
+          total={tasks.length}
+          voiceRate={voiceRate}
+        />
+      ) : null}
       <div className="science-cycle" aria-label={`${visual.title} cycle`}>
         <div className="science-cycle__track" />
         {visual.nodes.map((node, index) => {
@@ -374,7 +545,7 @@ function ScienceCycle({ visual }: { visual: Extract<LessonVisual, { kind: "scien
               type="button"
               aria-pressed={selected}
               className={selected ? "science-cycle__node is-selected" : "science-cycle__node"}
-              onClick={() => setSelectedIndex(index)}
+              onClick={() => chooseNode(index)}
               style={{ left: `${left}%`, top: `${top}%` }}
             >
               {node}
@@ -391,8 +562,17 @@ function ScienceCycle({ visual }: { visual: Extract<LessonVisual, { kind: "scien
         <span className="canvas-callout__label">Selected part</span>
         <strong>{selectedNode}</strong>
         <p>
-          Step {safeSelectedIndex + 1} of {total}. Tap another part to follow the process.
+          {task
+            ? selectedMatchesTask
+              ? task.success
+              : task.hint ?? "Try another part in the cycle."
+            : `Step ${safeSelectedIndex + 1} of ${total}. Tap another part to follow the process.`}
         </p>
+        {task && selectedMatchesTask && !isLastTask ? (
+          <button type="button" className="canvas-callout__action" onClick={moveToNextTask}>
+            Next task
+          </button>
+        ) : null}
       </aside>
     </div>
   );
@@ -400,11 +580,15 @@ function ScienceCycle({ visual }: { visual: Extract<LessonVisual, { kind: "scien
 
 function FormulaBoard({
   visual,
+  tasks,
   onPracticeStateChange,
+  onActivityAttempt,
   voiceRate,
 }: {
   visual: Extract<LessonVisual, { kind: "formula_board" }>;
+  tasks: Extract<LessonActivityTask, { kind: "tap_formula_token" }>[];
   onPracticeStateChange?: (state: CanvasPracticeState) => void;
+  onActivityAttempt?: (attempt: Omit<CanvasActivityAttempt, "stepId">) => void;
   voiceRate: number;
 }) {
   const formulaParts = useMemo(
@@ -414,15 +598,15 @@ function FormulaBoard({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [taskIndex, setTaskIndex] = useState(0);
   const [taskWasTried, setTaskWasTried] = useState(false);
-  const tasks = visual.tasks ?? [];
   const safeTaskIndex = clampInteger(taskIndex, 0, Math.max(0, tasks.length - 1));
   const task = tasks[safeTaskIndex];
+  const taskSignature = tasks.map((item) => item.id).join("|");
 
   useEffect(() => {
     setSelectedIndex(0);
     setTaskIndex(0);
     setTaskWasTried(false);
-  }, [visual.formula, visual.tasks]);
+  }, [taskSignature, visual.formula]);
 
   const safeSelectedIndex = clampInteger(selectedIndex, 0, formulaParts.length - 1);
   const selectedToken = formulaParts[safeSelectedIndex];
@@ -440,6 +624,20 @@ function FormulaBoard({
       prompt: task?.instruction ?? "",
     });
   }, [onPracticeStateChange, practiceComplete, task?.instruction, tasks.length]);
+
+  function chooseToken(index: number, token: string) {
+    const correct = Boolean(task) && token.trim().toLowerCase() === task.target.trim().toLowerCase();
+    setSelectedIndex(index);
+    setTaskWasTried(true);
+    if (task) {
+      onActivityAttempt?.({
+        taskId: task.id,
+        taskKind: "tap_formula_token",
+        response: token,
+        correct,
+      });
+    }
+  }
 
   function moveToNextTask() {
     if (!selectedTokenMatchesTask || isLastTask) {
@@ -471,8 +669,7 @@ function FormulaBoard({
                 aria-pressed={selected}
                 className={selected ? "formula-token is-selected" : "formula-token"}
                 onClick={() => {
-                  setSelectedIndex(index);
-                  setTaskWasTried(true);
+                  chooseToken(index, part);
                 }}
                 style={{ "--token-color": tokenPalette[index % tokenPalette.length] } as CSSProperties}
               >
@@ -503,29 +700,63 @@ function FormulaBoard({
 }
 
 function renderVisual(
-  visual: LessonVisual,
+  step: LessonStep,
   voiceRate: number,
   onPracticeStateChange?: (state: CanvasPracticeState) => void,
+  onActivityAttempt?: (attempt: CanvasActivityAttempt) => void,
 ) {
+  const visual = step.visual;
+  const reportActivityAttempt = (attempt: Omit<CanvasActivityAttempt, "stepId">) => {
+    onActivityAttempt?.({ ...attempt, stepId: step.id });
+  };
+
   switch (visual.kind) {
     case "fraction_pizza":
       return (
         <FractionPizza
           visual={visual}
+          tasks={getTasksForKind(step, "select_fraction_count")}
           voiceRate={voiceRate}
           onPracticeStateChange={onPracticeStateChange}
+          onActivityAttempt={reportActivityAttempt}
         />
       );
     case "word_cards":
-      return <WordCards visual={visual} />;
+      return (
+        <WordCards
+          visual={visual}
+          tasks={getTasksForKind(step, "tap_word_card")}
+          voiceRate={voiceRate}
+          onPracticeStateChange={onPracticeStateChange}
+          onActivityAttempt={reportActivityAttempt}
+        />
+      );
     case "science_cycle":
-      return <ScienceCycle visual={visual} />;
+      return (
+        <ScienceCycle
+          visual={visual}
+          tasks={getTasksForKind(step, "tap_cycle_node")}
+          voiceRate={voiceRate}
+          onPracticeStateChange={onPracticeStateChange}
+          onActivityAttempt={reportActivityAttempt}
+        />
+      );
     case "formula_board":
       return (
         <FormulaBoard
           visual={visual}
+          tasks={
+            getTasksForKind(step, "tap_formula_token").length
+              ? getTasksForKind(step, "tap_formula_token")
+              : (visual.tasks ?? []).map((task, index) => ({
+                  id: `formula-${index + 1}`,
+                  kind: "tap_formula_token",
+                  ...task,
+                }))
+          }
           voiceRate={voiceRate}
           onPracticeStateChange={onPracticeStateChange}
+          onActivityAttempt={reportActivityAttempt}
         />
       );
     default: {
@@ -535,7 +766,12 @@ function renderVisual(
   }
 }
 
-export function LessonCanvas({ step, onPracticeStateChange, voiceRate }: LessonCanvasProps) {
+export function LessonCanvas({
+  step,
+  onPracticeStateChange,
+  onActivityAttempt,
+  voiceRate,
+}: LessonCanvasProps) {
   return (
     <section className="lesson-canvas" aria-labelledby={`lesson-step-${step.id}`}>
       <header className="lesson-canvas__header">
@@ -543,7 +779,7 @@ export function LessonCanvas({ step, onPracticeStateChange, voiceRate }: LessonC
         <h2 id={`lesson-step-${step.id}`}>{step.title}</h2>
       </header>
       <div className="lesson-canvas__stage">
-        {renderVisual(step.visual, voiceRate, onPracticeStateChange)}
+        {renderVisual(step, voiceRate, onPracticeStateChange, onActivityAttempt)}
       </div>
     </section>
   );

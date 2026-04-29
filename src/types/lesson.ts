@@ -30,11 +30,46 @@ export type LessonVisual =
       }>;
     };
 
+export type LessonActivityTask =
+  | {
+      id: string;
+      kind: "select_fraction_count";
+      instruction: string;
+      targetCount: number;
+      success: string;
+      hint?: string;
+    }
+  | {
+      id: string;
+      kind: "tap_formula_token";
+      instruction: string;
+      target: string;
+      success: string;
+      hint?: string;
+    }
+  | {
+      id: string;
+      kind: "tap_word_card";
+      instruction: string;
+      target: string;
+      success: string;
+      hint?: string;
+    }
+  | {
+      id: string;
+      kind: "tap_cycle_node";
+      instruction: string;
+      target: string;
+      success: string;
+      hint?: string;
+    };
+
 export type LessonStep = {
   id: string;
   title: string;
   narration: string;
   prompt?: string;
+  teacherTasks?: LessonActivityTask[];
   visual: LessonVisual;
 };
 
@@ -113,4 +148,12 @@ export type LessonProgress = {
   improvementNotes: string[];
   chatMessages: ChatMessage[];
   tutorSignals: TutorSignal[];
+  activityAttempts: Array<{
+    stepId: string;
+    taskId: string;
+    taskKind: LessonActivityTask["kind"];
+    response: string;
+    correct: boolean;
+    attemptedAt: string;
+  }>;
 };

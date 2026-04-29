@@ -27,7 +27,9 @@ The current prototype scope is a Vite and React app with local lesson storage, s
 - Embedded Tutor Chat for lesson-aware conversation with push-to-talk input and spoken replies when browser voice APIs are available.
 - Tutor modes and saved tutor signals for explanation, hints, understanding checks, encouragement, and step advancement.
 - Richer interactive visual scene types for fractions, vocabulary, formulas, and simple science cycles.
+- Activity Engine v1 teacher tasks for fraction counts, formula tokens, word cards, and science cycle nodes.
 - Fraction canvas practice that starts with 1/4, teaches the formula parts, then asks the child to build harder targets such as 2/4, 3/4, and 4/4.
+- Photosynthesis practice that asks the child to identify sunlight, inputs, outputs, and vocabulary through canvas actions.
 - Teacher tasks can be read aloud with explicit Read and Stop controls.
 - Quiz flow with retry-friendly hints and completion only after all answers are correct.
 - Feedback Lab for teacher, student, and improvement notes.
@@ -43,13 +45,20 @@ If the shared server is not available, the standalone app falls back to browser 
 
 The Feedback Lab saves teacher notes, student experience notes, and improvement notes into the progress record for the active lesson. These notes feed the Ralph Loop without changing the canonical lesson content directly.
 
-Tutor Chat messages and tutor understanding signals are also saved in progress. The current MVP uses a local lesson-aware tutor brain, so conversation works without an API key. A future API tutor can replace the response logic while keeping the same saved transcript and signal shape.
+Tutor Chat messages, tutor understanding signals, and Activity Engine task attempts are also saved in progress. The current MVP uses a local lesson-aware tutor brain, so conversation works without an API key. A future API tutor can replace the response logic while keeping the same saved transcript and signal shape.
 
 On fresh state, the repository seeds bundled sample lessons. When a parent asks for a topic, the app should check the saved repository first and reuse a matching lesson before creating, importing, or eventually requesting a new generated lesson.
 
 ## Structured Lesson Schema
 
 Lessons use schema version `1` and include metadata such as `id`, `topic`, `gradeLevel`, `difficulty`, `source`, `status`, `version`, timestamps, `steps`, and `quiz`. Lesson steps carry narration, optional prompts, and typed visual data. Quiz questions carry choices, the correct answer, and an explanation.
+
+Lesson steps can also declare `teacherTasks`, which are checked by the canvas before Continue unlocks. Activity Engine v1 supports:
+
+- `select_fraction_count`
+- `tap_formula_token`
+- `tap_word_card`
+- `tap_cycle_node`
 
 Schema compatibility matters. Future schema changes should add migrations or compatibility adapters instead of breaking saved lessons silently.
 

@@ -18,6 +18,7 @@ import { LessonPlayer } from "./components/LessonPlayer";
 import { QuizPanel } from "./components/QuizPanel";
 import { FeedbackPanel, type FeedbackKind } from "./components/FeedbackPanel";
 import { buildTutorTurn } from "./lib/tutorBrain";
+import type { CanvasActivityAttempt } from "./components/LessonCanvas";
 import type { ChatMessage, Difficulty, GradeLevel, Lesson, TutorTurn } from "./types/lesson";
 
 const DEFAULT_VOICE_RATE = 0.95;
@@ -37,6 +38,7 @@ export default function App() {
     progress.teacherNotes.length + progress.studentNotes.length + progress.improvementNotes.length;
   const conversationCount = progress.chatMessages.filter((message) => message.role === "student").length;
   const tutorSignalCount = progress.tutorSignals.length;
+  const activityAttemptCount = progress.activityAttempts.length;
 
   useEffect(() => {
     let cancelled = false;
@@ -144,6 +146,22 @@ export default function App() {
           selected,
           correct,
           answeredAt: new Date().toISOString(),
+        },
+      ],
+    });
+    setProgressVersion((version) => version + 1);
+  }
+
+  function handleActivityAttempt(attempt: CanvasActivityAttempt) {
+    const currentProgress = getLessonProgress(activeLesson.id);
+
+    void updateLessonProgressInRepository({
+      ...currentProgress,
+      activityAttempts: [
+        ...currentProgress.activityAttempts,
+        {
+          ...attempt,
+          attemptedAt: new Date().toISOString(),
         },
       ],
     });
@@ -270,6 +288,7 @@ export default function App() {
           progress={progress}
           voiceRate={DEFAULT_VOICE_RATE}
           onSendMessage={handleSendTutorMessage}
+          onActivityAttempt={handleActivityAttempt}
         />
       </section>
 
@@ -308,6 +327,10 @@ export default function App() {
             <div>
               <dt>Conversations</dt>
               <dd>{conversationCount}</dd>
+            </div>
+            <div>
+              <dt>Activities</dt>
+              <dd>{activityAttemptCount}</dd>
             </div>
             <div>
               <dt>Tutor signals</dt>

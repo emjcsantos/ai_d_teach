@@ -19,12 +19,21 @@ export const sampleLessons = [
         title: "One Part Of A Whole",
         narration: "A fraction tells us how many equal parts of a whole we are talking about.",
         prompt: "Select one slice and say: one out of four equal parts.",
+        teacherTasks: [
+          {
+            id: "fraction-one-fourth",
+            kind: "select_fraction_count",
+            instruction: "Click 1/4 of the pizza.",
+            targetCount: 1,
+            success: "Yes. 1/4 means 1 out of 4 equal parts.",
+            hint: "Choose one slice only.",
+          },
+        ],
         visual: {
           kind: "fraction_pizza",
           parts: 4,
           highlight: 1,
           label: "1/4",
-          practiceTargets: [1],
         },
       },
       {
@@ -33,22 +42,28 @@ export const sampleLessons = [
         narration:
           "The top number counts selected parts. The bottom number counts all equal parts.",
         prompt: "Tap selected, then tap equal, to learn what each number counts.",
+        teacherTasks: [
+          {
+            id: "fraction-selected-token",
+            kind: "tap_formula_token",
+            instruction: "Tap selected in the formula. It tells how many parts you picked.",
+            target: "selected",
+            success: "Yes. Selected parts is the top number idea.",
+            hint: "Look for the word that means the parts you picked.",
+          },
+          {
+            id: "fraction-equal-token",
+            kind: "tap_formula_token",
+            instruction: "Tap equal in the formula. It tells how many parts make the whole.",
+            target: "equal",
+            success: "Yes. Equal parts is the bottom number idea.",
+            hint: "Look for the word that tells all parts have the same size.",
+          },
+        ],
         visual: {
           kind: "formula_board",
           formula: "selected parts / equal parts = fraction",
           explanation: "One selected slice out of four equal slices is one fourth.",
-          tasks: [
-            {
-              instruction: "Tap selected in the formula. It tells how many parts you picked.",
-              target: "selected",
-              success: "Yes. Selected parts is the top number idea.",
-            },
-            {
-              instruction: "Tap equal in the formula. It tells how many parts make the whole.",
-              target: "equal",
-              success: "Yes. Equal parts is the bottom number idea.",
-            },
-          ],
         },
       },
       {
@@ -56,12 +71,37 @@ export const sampleLessons = [
         title: "Build More Fractions",
         narration: "Now use the top and bottom numbers to build more fractions with the pizza.",
         prompt: "Select the number of slices the teacher asks for.",
+        teacherTasks: [
+          {
+            id: "fraction-two-fourths",
+            kind: "select_fraction_count",
+            instruction: "Click 2/4 of the pizza.",
+            targetCount: 2,
+            success: "Yes. 2/4 means 2 out of 4 equal parts.",
+            hint: "Choose two slices.",
+          },
+          {
+            id: "fraction-three-fourths",
+            kind: "select_fraction_count",
+            instruction: "Click 3/4 of the pizza.",
+            targetCount: 3,
+            success: "Yes. 3/4 means 3 out of 4 equal parts.",
+            hint: "Choose three slices.",
+          },
+          {
+            id: "fraction-four-fourths",
+            kind: "select_fraction_count",
+            instruction: "Click the whole pizza: 4/4.",
+            targetCount: 4,
+            success: "Great. The whole pizza is selected.",
+            hint: "Choose every slice.",
+          },
+        ],
         visual: {
           kind: "fraction_pizza",
           parts: 4,
           highlight: 2,
           label: "2/4",
-          practiceTargets: [2, 3, 4],
         },
       },
     ],
@@ -108,6 +148,32 @@ export const sampleLessons = [
         narration:
           "Plants use sunlight, water, and carbon dioxide to make sugar for energy and release oxygen.",
         prompt: "Tap each bubble in the cycle to read what the plant uses or makes.",
+        teacherTasks: [
+          {
+            id: "photo-energy-source",
+            kind: "tap_cycle_node",
+            instruction: "Tap the energy source plants use.",
+            target: "Sunlight",
+            success: "Correct. Sunlight gives the plant energy.",
+            hint: "Look for the part that shines on the plant.",
+          },
+          {
+            id: "photo-plant-input",
+            kind: "tap_cycle_node",
+            instruction: "Tap one input the plant takes in.",
+            target: "Water",
+            success: "Yes. Water is one thing the plant takes in.",
+            hint: "Look for something roots can take in.",
+          },
+          {
+            id: "photo-plant-output",
+            kind: "tap_cycle_node",
+            instruction: "Tap something the plant makes or releases.",
+            target: "Oxygen",
+            success: "Yes. Plants release oxygen into the air.",
+            hint: "Look for the gas plants release.",
+          },
+        ],
         visual: {
           kind: "science_cycle",
           title: "Photosynthesis",
@@ -118,6 +184,17 @@ export const sampleLessons = [
         id: "photo-words",
         title: "Key Words",
         narration: "Photosynthesis has a few important words. Learn them like puzzle pieces.",
+        prompt: "Tap the word that means plant sugar.",
+        teacherTasks: [
+          {
+            id: "photo-glucose-card",
+            kind: "tap_word_card",
+            instruction: "Tap the word that means plant sugar.",
+            target: "Glucose",
+            success: "Correct. Glucose is a sugar plants make for energy.",
+            hint: "Find the card that talks about sugar.",
+          },
+        ],
         visual: {
           kind: "word_cards",
           words: [
@@ -135,6 +212,20 @@ export const sampleLessons = [
         choices: ["Sunlight", "Moonlight", "Sand"],
         answer: "Sunlight",
         explanation: "Plants use sunlight as energy during photosynthesis.",
+      },
+      {
+        id: "photo-q2",
+        prompt: "Which is something a plant takes in during photosynthesis?",
+        choices: ["Water", "Plastic", "Music"],
+        answer: "Water",
+        explanation: "Plants take in water as one ingredient for photosynthesis.",
+      },
+      {
+        id: "photo-q3",
+        prompt: "Which gas do plants release during photosynthesis?",
+        choices: ["Oxygen", "Smoke", "Helium"],
+        answer: "Oxygen",
+        explanation: "Plants release oxygen while making food.",
       },
     ],
   },

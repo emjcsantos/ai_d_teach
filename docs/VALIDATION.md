@@ -59,6 +59,7 @@ Expected results:
 - Existing progress remains attached to the correct lesson id.
 - Existing tutor chat transcripts remain attached to the correct lesson id.
 - Existing tutor understanding signals remain attached to the correct lesson id.
+- Existing Activity Engine attempts remain attached to the correct lesson id.
 - Existing feedback notes remain attached to the correct lesson id.
 - Invalid or unreadable stored JSON falls back safely instead of crashing the app.
 - Schema changes preserve backward compatibility through migrations or explicit fallback behavior.
@@ -111,6 +112,7 @@ Speech input must remain push-to-talk and must not listen continuously by defaul
 For progress and improvement changes, validate that:
 
 - Quiz attempts are stored with selected answer, correctness, and timestamp.
+- Activity Engine attempts are stored with step id, task id, task kind, response, correctness, and timestamp.
 - Tutor understanding signals are stored with step id, mode, next action, and whether the child can continue.
 - Teacher, student, and improvement notes are separate from canonical lesson data.
 - Improved lesson content can become a new version.
@@ -141,6 +143,7 @@ For UI changes, check common laptop and tablet sizes. The app should:
 - Keep the primary lesson clicks focused on the canvas, tutor conversation, and simple step navigation.
 - For fractions, verify the first step asks only for 1/4, the formula step requires tapping the requested formula tokens, and later practice checks 2/4, 3/4, and 4/4 before Continue appears.
 - Show Continue only after the tutor records solid understanding for the current step or the child completes the active instructor-led canvas task.
+- For Photosynthesis, verify teacher tasks require tapping sunlight, water, oxygen, and glucose before task completion.
 - In student view, parent tools, feedback notes, and Ralph Loop diagnostics should remain hidden behind the Parent tools toggle.
 - Quiz completion should remain disabled until every answer is correct, and wrong answers should give a hint without revealing the answer.
 - Keep lesson visuals usable on smaller screens.
