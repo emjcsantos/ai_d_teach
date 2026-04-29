@@ -25,6 +25,7 @@ The current prototype scope is a Vite and React app with local lesson storage, s
 - Default student view that keeps parent tools and feedback panels tucked away behind a Parent tools toggle.
 - Browser TTS narration with visible lesson text.
 - Embedded Tutor Chat for lesson-aware conversation with push-to-talk input and spoken replies when browser voice APIs are available.
+- Optional OpenAI API tutor brain through the local repository server, with the local rule-based tutor as fallback.
 - Tutor modes and saved tutor signals for explanation, hints, understanding checks, encouragement, and step advancement.
 - Richer interactive visual scene types for fractions, vocabulary, formulas, and simple science cycles.
 - Activity Engine v1 teacher tasks for fraction counts, formula tokens, word cards, and science cycle nodes.
@@ -45,7 +46,7 @@ If the shared server is not available, the standalone app falls back to browser 
 
 The Feedback Lab saves teacher notes, student experience notes, and improvement notes into the progress record for the active lesson. These notes feed the Ralph Loop without changing the canonical lesson content directly.
 
-Tutor Chat messages, tutor understanding signals, and Activity Engine task attempts are also saved in progress. The current MVP uses a local lesson-aware tutor brain, so conversation works without an API key. A future API tutor can replace the response logic while keeping the same saved transcript and signal shape.
+Tutor Chat messages, tutor understanding signals, and Activity Engine task attempts are also saved in progress. The app can use an OpenAI API tutor brain when `OPENAI_API_KEY` is configured on the local repository server. If the key is missing or the API request fails, the local lesson-aware tutor brain answers instead, so conversation still works offline from API billing.
 
 On fresh state, the repository seeds bundled sample lessons. When a parent asks for a topic, the app should check the saved repository first and reuse a matching lesson before creating, importing, or eventually requesting a new generated lesson.
 
@@ -67,6 +68,16 @@ Schema compatibility matters. Future schema changes should add migrations or com
 Browser text-to-speech is the default narration implementation through the Web Speech API. Push-to-talk speech input uses the browser Speech Recognition API when available and falls back to typed input when unavailable. Higher-quality cloud or local voices can be added later, but they must remain optional and should cache generated audio per lesson when used. Tutor Chat can speak replies through the same browser voice layer.
 
 API-based lesson generation is also optional future work. When added, it should produce validated structured lesson data, reject or repair invalid output before saving, and never assume Codex is available as the runtime backend.
+
+The GPT tutor integration uses the OpenAI Responses API from `server/apps-sdk-server.mjs`; the API key stays server-side and is never sent to the browser. Configure it before starting the repository server:
+
+```powershell
+$env:OPENAI_API_KEY="your_api_key"
+$env:OPENAI_TUTOR_MODEL="gpt-5-mini"
+npm.cmd run chatgpt:app
+```
+
+The standalone app at `http://127.0.0.1:5173` sends tutor messages to `http://127.0.0.1:8787/api/tutor` and falls back locally if that endpoint is unavailable.
 
 ## Ralph Loop
 

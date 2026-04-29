@@ -26,6 +26,16 @@ npm.cmd run chatgpt:app
 
 When the MCP server is running, the standalone app should sync lessons and progress with the shared repository API. If the server is stopped, it should fall back to browser localStorage.
 
+To test the optional GPT tutor brain, start the MCP server with:
+
+```powershell
+$env:OPENAI_API_KEY="your_api_key"
+$env:OPENAI_TUTOR_MODEL="gpt-5-mini"
+npm.cmd run chatgpt:app
+```
+
+If `OPENAI_API_KEY` is not configured, Tutor Chat should still work through the local fallback tutor.
+
 ## Fresh-State Smoke Expectations
 
 Use a browser profile or localStorage state with no saved AI D Teach data.
@@ -40,6 +50,7 @@ Expected results:
 - Narration text is visible even if audio is unavailable.
 - Browser TTS works when `speechSynthesis` is supported.
 - Tutor Chat can answer a typed question about the current lesson.
+- Tutor Chat falls back to the local tutor when `/api/tutor` is unavailable or OpenAI is not configured.
 - Quiz flow records attempts and explanations.
 - Feedback Lab can save teacher, student, and improvement notes.
 - Progress or completion state is saved separately from lesson content.
@@ -72,6 +83,7 @@ When `npm.cmd run chatgpt:app` is running:
 - `POST http://localhost:8787/api/lessons` saves or updates a lesson.
 - `GET http://localhost:8787/api/progress/{lessonId}` returns normalized progress.
 - `PUT http://localhost:8787/api/progress/{lessonId}` saves quiz attempts, chat transcripts, and feedback.
+- `POST http://localhost:8787/api/tutor` returns an OpenAI tutor turn when `OPENAI_API_KEY` is configured, and returns unavailable when it is not.
 - Restarting the MCP server does not erase saved lessons or progress.
 - The standalone app still works if the server is unavailable.
 

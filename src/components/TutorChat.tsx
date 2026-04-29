@@ -12,12 +12,13 @@ export type TutorChatProps = {
   lesson: Lesson;
   progress: LessonProgress;
   voiceRate: number;
-  onSendMessage: (message: string) => TutorTurn;
+  onSendMessage: (message: string) => Promise<TutorTurn>;
 };
 
 export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorChatProps) {
   const [draft, setDraft] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
+  const [isWaitingForTutor, setIsWaitingForTutor] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeakingReply, setIsSpeakingReply] = useState(false);
   const [speechInputAvailable, setSpeechInputAvailable] = useState(false);
@@ -70,23 +71,29 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
   }, [messages.length]);
 
-  function sendMessage(message: string) {
+  async function sendMessage(message: string) {
     const cleanMessage = message.trim();
 
-    if (!cleanMessage) {
+    if (!cleanMessage || isWaitingForTutor) {
       return;
     }
 
-    const tutorTurn = onSendMessage(cleanMessage);
+    setIsWaitingForTutor(true);
     setDraft("");
 
-    if (speechAvailable) {
-      stopSpeaking();
-      setIsSpeakingReply(true);
-      speak(tutorTurn.reply, {
-        rate: voiceRate,
-        onEnd: () => setIsSpeakingReply(false),
-      });
+    try {
+      const tutorTurn = await onSendMessage(cleanMessage);
+
+      if (speechAvailable) {
+        stopSpeaking();
+        setIsSpeakingReply(true);
+        speak(tutorTurn.reply, {
+          rate: voiceRate,
+          onEnd: () => setIsSpeakingReply(false),
+        });
+      }
+    } finally {
+      setIsWaitingForTutor(false);
     }
   }
 
@@ -126,7 +133,7 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
         setIsListening(false);
         setDraft("");
         setInterimTranscript("");
-        sendMessage(transcript);
+        void sendMessage(transcript);
       },
       onInterimTranscript: setInterimTranscript,
     });
@@ -194,6 +201,7 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             placeholder={isListening ? "Listening..." : "Ask: why does this work?"}
+            disabled={isWaitingForTutor}
             rows={3}
           />
         </label>
@@ -208,7 +216,7 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
           <button
             type="button"
             className={isListening ? "tutor-chat__listen is-listening" : "tutor-chat__listen"}
-            disabled={!speechInputAvailable}
+            disabled={!speechInputAvailable || isWaitingForTutor}
             onClick={isListening ? stopVoiceInput : startVoiceInput}
             title={
               speechInputAvailable
@@ -232,9 +240,9 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
               Stop voice
             </button>
           ) : null}
-          <button type="submit" className="tutor-chat__send" disabled={!trimmedDraft}>
+          <button type="submit" className="tutor-chat__send" disabled={!trimmedDraft || isWaitingForTutor}>
             <Send size={17} aria-hidden="true" />
-            Ask Tutor
+            {isWaitingForTutor ? "Thinking" : "Ask Tutor"}
           </button>
         </div>
       </form>

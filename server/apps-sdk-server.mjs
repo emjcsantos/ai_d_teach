@@ -43,6 +43,152 @@ const recordFeedbackInputSchema = {
   note: z.string().min(1),
 };
 
+const TUTOR_TURN_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    reply: { type: "string" },
+    mode: { enum: ["explain", "hint", "check", "encourage", "advance"] },
+    understanding: { enum: ["not_checked", "emerging", "solid"] },
+    nextAction: { enum: ["answer", "try_canvas", "continue", "review", "quiz"] },
+    canContinue: { type: "boolean" },
+  },
+  required: ["reply", "mode", "understanding", "nextAction", "canContinue"],
+};
+
+function extractResponseText(payload) {
+  if (typeof payload?.output_text === "string") {
+    return payload.output_text;
+  }
+
+  const textParts = [];
+
+  for (const item of payload?.output ?? []) {
+    for (const content of item?.content ?? []) {
+      if (typeof content?.text === "string") {
+        textParts.push(content.text);
+      }
+    }
+  }
+
+  return textParts.join("\n").trim();
+}
+
+function normalizeTutorTurn(value) {
+  const parsed = z
+    .object({
+      reply: z.string().min(1),
+      mode: z.enum(["explain", "hint", "check", "encourage", "advance"]),
+      understanding: z.enum(["not_checked", "emerging", "solid"]),
+      nextAction: z.enum(["answer", "try_canvas", "continue", "review", "quiz"]),
+      canContinue: z.boolean(),
+    })
+    .safeParse(value);
+
+  if (!parsed.success) {
+    throw new Error("Invalid tutor turn returned by model.");
+  }
+
+  return parsed.data;
+}
+
+function summarizeCurrentStep(step) {
+  const taskSummary = (step.teacherTasks ?? [])
+    .map((task) => `${task.kind}: ${task.instruction}`)
+    .join(" | ");
+
+  return {
+    id: step.id,
+    title: step.title,
+    narration: step.narration,
+    prompt: step.prompt,
+    visual: step.visual,
+    teacherTasks: taskSummary,
+  };
+}
+
+async function buildGptTutorTurn({ lesson, currentStep, message, progress }) {
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is not configured.");
+  }
+
+  const model = process.env.OPENAI_TUTOR_MODEL ?? "gpt-5-mini";
+  const recentMessages = (progress.chatMessages ?? []).slice(-8).map((entry) => ({
+    role: entry.role,
+    text: entry.text,
+  }));
+  const recentActivity = (progress.activityAttempts ?? []).slice(-8).map((attempt) => ({
+    stepId: attempt.stepId,
+    taskId: attempt.taskId,
+    response: attempt.response,
+    correct: attempt.correct,
+  }));
+
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${apiKey}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      max_output_tokens: 450,
+      input: [
+        {
+          role: "system",
+          content: [
+            {
+              type: "input_text",
+              text:
+                "You are AI D Teach, a warm voice-first tutor for a child. Keep replies short, friendly, and conversational. Ask at most one question. Encourage canvas interaction before long explanations. Do not reveal quiz answers unless the child asks for help after trying. Return only the JSON object requested by the schema.",
+            },
+          ],
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "input_text",
+              text: JSON.stringify({
+                lesson: {
+                  id: lesson.id,
+                  topic: lesson.topic,
+                  gradeLevel: lesson.gradeLevel,
+                  summary: lesson.summary,
+                },
+                currentStep: summarizeCurrentStep(currentStep),
+                childMessage: message,
+                recentMessages,
+                recentActivity,
+              }),
+            },
+          ],
+        },
+      ],
+      text: {
+        format: {
+          type: "json_schema",
+          name: "tutor_turn",
+          schema: TUTOR_TURN_SCHEMA,
+          strict: true,
+        },
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OpenAI tutor request failed: ${response.status} ${errorText}`);
+  }
+
+  const payload = await response.json();
+  const outputText = extractResponseText(payload);
+
+  return normalizeTutorTurn(JSON.parse(outputText));
+}
+
 function writeCorsHeaders(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
@@ -196,6 +342,29 @@ function createAiDTeachServer() {
 }
 
 async function handleApiRequest(req, res, url) {
+  if (req.method === "POST" && url.pathname === "/api/tutor") {
+    const body = await readJsonBody(req);
+
+    if (!body.lesson?.id || !body.currentStep?.id || typeof body.message !== "string") {
+      writeJson(res, 400, { error: "Missing tutor input." });
+      return true;
+    }
+
+    try {
+      const tutorTurn = await buildGptTutorTurn(body);
+      writeJson(res, 200, {
+        tutorTurn,
+        source: "openai",
+        model: process.env.OPENAI_TUTOR_MODEL ?? "gpt-5-mini",
+      });
+    } catch (error) {
+      console.warn("OpenAI tutor unavailable; client can use local fallback.", error?.message ?? error);
+      writeJson(res, 503, { error: "OpenAI tutor unavailable." });
+    }
+
+    return true;
+  }
+
   if (req.method === "GET" && url.pathname === "/api/lessons") {
     writeJson(res, 200, { lessons: await listLessons() });
     return true;
@@ -306,4 +475,3 @@ const httpServer = createServer(async (req, res) => {
 httpServer.listen(port, () => {
   console.log(`AI D Teach MCP server listening on http://localhost:${port}${MCP_PATH}`);
 });
-

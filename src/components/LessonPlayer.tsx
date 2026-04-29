@@ -10,7 +10,7 @@ export type LessonPlayerProps = {
   currentStepIndex: number;
   onStepChange: (index: number) => void;
   progress: LessonProgress;
-  onSendMessage: (message: string) => TutorTurn;
+  onSendMessage: (message: string) => Promise<TutorTurn>;
   onActivityAttempt: (attempt: CanvasActivityAttempt) => void;
   voiceRate: number;
 };

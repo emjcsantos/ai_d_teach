@@ -18,6 +18,7 @@ import { LessonPlayer } from "./components/LessonPlayer";
 import { QuizPanel } from "./components/QuizPanel";
 import { FeedbackPanel, type FeedbackKind } from "./components/FeedbackPanel";
 import { buildTutorTurn } from "./lib/tutorBrain";
+import { requestTutorTurn } from "./lib/tutorApi";
 import type { CanvasActivityAttempt } from "./components/LessonCanvas";
 import type { ChatMessage, Difficulty, GradeLevel, Lesson, TutorTurn } from "./types/lesson";
 
@@ -199,23 +200,37 @@ export default function App() {
     setProgressVersion((version) => version + 1);
   }
 
-  function handleSendTutorMessage(message: string) {
+  async function handleSendTutorMessage(message: string) {
     const currentStep = activeLesson.steps[currentStepIndex] ?? activeLesson.steps[0];
     const currentProgress = getLessonProgress(activeLesson.id);
-    const tutorTurn: TutorTurn = currentStep
-      ? buildTutorTurn({
+    let tutorTurn: TutorTurn;
+
+    if (currentStep) {
+      try {
+        tutorTurn = await requestTutorTurn({
           lesson: activeLesson,
           currentStep,
           message,
           progress: currentProgress,
-        })
-      : {
-          reply: `This lesson needs at least one step before I can tutor it. Add a lesson step for ${activeLesson.topic}, then ask me again.`,
-          mode: "explain",
-          understanding: "not_checked",
-          nextAction: "review",
-          canContinue: false,
-        };
+        });
+      } catch {
+        tutorTurn = buildTutorTurn({
+          lesson: activeLesson,
+          currentStep,
+          message,
+          progress: currentProgress,
+        });
+      }
+    } else {
+      tutorTurn = {
+        reply: `This lesson needs at least one step before I can tutor it. Add a lesson step for ${activeLesson.topic}, then ask me again.`,
+        mode: "explain",
+        understanding: "not_checked",
+        nextAction: "review",
+        canContinue: false,
+      };
+    }
+
     const userMessage = createChatMessage("student", message, currentStep?.id);
     const tutorMessage = createChatMessage("tutor", tutorTurn.reply, currentStep?.id, tutorTurn);
     const tutorSignal = currentStep
