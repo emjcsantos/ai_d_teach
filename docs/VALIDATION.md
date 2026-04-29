@@ -29,12 +29,12 @@ When the MCP server is running, the standalone app should sync lessons and progr
 To test the optional GPT tutor brain, start the MCP server with:
 
 ```powershell
-$env:OPENAI_API_KEY="your_api_key"
-$env:OPENAI_TUTOR_MODEL="gpt-5-mini"
+Copy-Item .env.example .env
+notepad .env
 npm.cmd run chatgpt:app
 ```
 
-If `OPENAI_API_KEY` is not configured, Tutor Chat should still work through the local fallback tutor.
+Set `OPENAI_API_KEY` in `.env`. If `OPENAI_API_KEY` is not configured, Tutor Chat should still work through the local fallback tutor.
 
 ## Fresh-State Smoke Expectations
 

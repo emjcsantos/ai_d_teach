@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import dotenv from "dotenv";
 import {
   registerAppResource,
   registerAppTool,
@@ -22,6 +23,7 @@ import {
 } from "./lessonStore.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: resolve(__dirname, "../.env") });
 const WIDGET_URI = "ui://widget/lesson.html";
 const widgetHtml = readFileSync(resolve(__dirname, "../public/lesson-widget.html"), "utf8");
 
@@ -89,7 +91,10 @@ function normalizeTutorTurn(value) {
     throw new Error("Invalid tutor turn returned by model.");
   }
 
-  return parsed.data;
+  return {
+    ...parsed.data,
+    canContinue: parsed.data.nextAction === "continue" && parsed.data.understanding === "solid",
+  };
 }
 
 function summarizeCurrentStep(step) {

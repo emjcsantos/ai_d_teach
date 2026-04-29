@@ -69,13 +69,15 @@ Browser text-to-speech is the default narration implementation through the Web S
 
 API-based lesson generation is also optional future work. When added, it should produce validated structured lesson data, reject or repair invalid output before saving, and never assume Codex is available as the runtime backend.
 
-The GPT tutor integration uses the OpenAI Responses API from `server/apps-sdk-server.mjs`; the API key stays server-side and is never sent to the browser. Configure it before starting the repository server:
+The GPT tutor integration uses the OpenAI Responses API from `server/apps-sdk-server.mjs`; the API key stays server-side and is never sent to the browser. Configure it in a local `.env` file before starting the repository server:
 
 ```powershell
-$env:OPENAI_API_KEY="your_api_key"
-$env:OPENAI_TUTOR_MODEL="gpt-5-mini"
+Copy-Item .env.example .env
+notepad .env
 npm.cmd run chatgpt:app
 ```
+
+Set `OPENAI_API_KEY` in `.env`. The default tutor model is `gpt-5-mini`.
 
 The standalone app at `http://127.0.0.1:5173` sends tutor messages to `http://127.0.0.1:8787/api/tutor` and falls back locally if that endpoint is unavailable.
 
