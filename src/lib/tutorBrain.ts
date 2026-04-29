@@ -1,4 +1,5 @@
 import type { Lesson, LessonProgress, LessonStep, QuizQuestion, TutorTurn } from "../types/lesson";
+import type { LessonVisual } from "../types/lesson";
 
 type TutorReplyInput = {
   lesson: Lesson;
@@ -17,6 +18,19 @@ function normalizeText(text: string) {
 
 function countMatches(text: string, words: string[]) {
   return words.filter((word) => word && text.includes(word)).length;
+}
+
+function uniqueNormalized(words: string[]) {
+  const seen = new Set<string>();
+
+  return words.map(normalizeText).filter((word) => {
+    if (!word || seen.has(word)) {
+      return false;
+    }
+
+    seen.add(word);
+    return true;
+  });
 }
 
 function getNextQuizQuestion(lesson: Lesson, progress: LessonProgress): QuizQuestion | undefined {
@@ -69,15 +83,95 @@ function getVisualClues(step: LessonStep) {
         clues.push("one fourth", "one quarter", "quarter");
       }
 
-      return clues.map(normalizeText);
+      return uniqueNormalized(clues);
     }
     case "word_cards":
-      return visual.words.flatMap((word) => [word.term, word.meaning]).map(normalizeText);
+      return uniqueNormalized(visual.words.flatMap((word) => [word.term, word.meaning]));
     case "science_cycle":
-      return [visual.title, ...visual.nodes, "cycle", "flow"].map(normalizeText);
+      return uniqueNormalized([visual.title, ...visual.nodes, "cycle", "flow"]);
     case "formula_board":
-      return [visual.formula, visual.explanation].map(normalizeText);
+      return uniqueNormalized([visual.formula, visual.explanation]);
   }
+}
+
+function getFractionTargets(visual: Extract<LessonVisual, { kind: "fraction_pizza" }>) {
+  const targets = visual.practiceTargets?.length ? visual.practiceTargets : [visual.highlight];
+
+  return targets.filter(
+    (target, index, values) =>
+      Number.isFinite(target) &&
+      target >= 1 &&
+      target <= visual.parts &&
+      values.indexOf(target) === index,
+  );
+}
+
+function assessFractionUnderstanding(
+  message: string,
+  visual: Extract<LessonVisual, { kind: "fraction_pizza" }>,
+) {
+  const targets = getFractionTargets(visual);
+  const labelClues = targets.flatMap((target) => [`${target}/${visual.parts}`]);
+  const meaningClues = targets.flatMap((target) => [
+    `${target} out of ${visual.parts}`,
+    `${target} of ${visual.parts}`,
+    `${target} selected`,
+    `${target} slice`,
+    `${target} part`,
+  ]);
+
+  if (targets.includes(1) && visual.parts === 4) {
+    labelClues.push("one fourth", "one quarter", "quarter");
+    meaningClues.push("one out of four");
+  }
+
+  meaningClues.push("equal parts", "whole");
+
+  const hasLabel = includesAny(message, uniqueNormalized(labelClues));
+  const hasMeaning = includesAny(message, uniqueNormalized(meaningClues));
+
+  if (hasLabel && hasMeaning) {
+    return "solid" as const;
+  }
+
+  if (hasLabel || hasMeaning || looksLikeStudentAnswer(message)) {
+    return "emerging" as const;
+  }
+
+  return "not_checked" as const;
+}
+
+function assessFormulaUnderstanding(
+  message: string,
+  visual: Extract<LessonVisual, { kind: "formula_board" }>,
+) {
+  const selectedPartClues = [
+    "selected parts",
+    "selected",
+    "top number",
+    "numerator",
+    "picked",
+  ];
+  const equalPartClues = [
+    "equal parts",
+    "equal",
+    "bottom number",
+    "denominator",
+    "whole",
+  ];
+  const talksAboutSelectedParts = includesAny(message, selectedPartClues);
+  const talksAboutEqualParts = includesAny(message, equalPartClues);
+  const clueMatches = countMatches(message, uniqueNormalized([visual.formula, visual.explanation]));
+
+  if (talksAboutSelectedParts && talksAboutEqualParts) {
+    return "solid" as const;
+  }
+
+  if (talksAboutSelectedParts || talksAboutEqualParts || clueMatches > 0 || looksLikeStudentAnswer(message)) {
+    return "emerging" as const;
+  }
+
+  return "not_checked" as const;
 }
 
 function looksLikeQuestion(text: string) {
@@ -89,14 +183,26 @@ function looksLikeStudentAnswer(text: string) {
 }
 
 function assessUnderstanding(message: string, step: LessonStep) {
+  if (step.visual.kind === "fraction_pizza") {
+    return assessFractionUnderstanding(message, step.visual);
+  }
+
+  if (step.visual.kind === "formula_board") {
+    return assessFormulaUnderstanding(message, step.visual);
+  }
+
   const clues = getVisualClues(step);
   const clueMatches = countMatches(message, clues);
 
-  if (clueMatches >= 2 || includesAny(message, ["i understand", "got it", "i get it"])) {
+  if (clueMatches >= 2) {
     return "solid" as const;
   }
 
-  if (clueMatches === 1 || looksLikeStudentAnswer(message)) {
+  if (
+    clueMatches === 1 ||
+    looksLikeStudentAnswer(message) ||
+    includesAny(message, ["i understand", "got it", "i get it"])
+  ) {
     return "emerging" as const;
   }
 

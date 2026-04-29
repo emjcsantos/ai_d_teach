@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Sparkles } from "lucide-react";
+import { Settings2, Sparkles } from "lucide-react";
 import { createStarterLesson } from "./data/sampleLessons";
 import {
   loadLessons,
@@ -27,6 +27,7 @@ export default function App() {
   const [activeLesson, setActiveLesson] = useState<Lesson>(() => lessons[0]);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [progressVersion, setProgressVersion] = useState(0);
+  const [showParentTools, setShowParentTools] = useState(false);
 
   const progress = useMemo(
     () => getLessonProgress(activeLesson.id),
@@ -225,7 +226,18 @@ export default function App() {
   }
 
   return (
-    <main className="app-shell">
+    <>
+      <button
+        type="button"
+        className="parent-tools-toggle"
+        onClick={() => setShowParentTools((current) => !current)}
+        title={showParentTools ? "Return to student view" : "Show parent tools"}
+      >
+        <Settings2 size={17} aria-hidden="true" />
+        <span>{showParentTools ? "Student view" : "Parent tools"}</span>
+      </button>
+
+      <main className={showParentTools ? "app-shell" : "app-shell is-student-focus"}>
       <aside className="control-rail" aria-label="Lesson setup and library">
         <div className="brand-lockup">
           <div className="brand-mark">
@@ -304,6 +316,7 @@ export default function App() {
           </dl>
         </section>
       </aside>
-    </main>
+      </main>
+    </>
   );
 }

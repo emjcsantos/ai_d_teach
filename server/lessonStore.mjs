@@ -17,6 +17,28 @@ function normalizeTopic(topic) {
   return topic.trim().toLowerCase();
 }
 
+function mergeCurrentSampleLessons(lessons) {
+  const sampleById = new Map(sampleLessons.map((lesson) => [lesson.id, lesson]));
+  const seenIds = new Set();
+  const mergedLessons = lessons.map((lesson) => {
+    const sampleLesson = sampleById.get(lesson.id);
+    seenIds.add(lesson.id);
+
+    if (!sampleLesson) {
+      return lesson;
+    }
+
+    return {
+      ...sampleLesson,
+      createdAt: lesson.createdAt || sampleLesson.createdAt,
+      updatedAt: sampleLesson.updatedAt,
+    };
+  });
+  const missingSamples = sampleLessons.filter((lesson) => !seenIds.has(lesson.id));
+
+  return [...mergedLessons, ...missingSamples];
+}
+
 function createEmptyProgress(lessonId) {
   return {
     lessonId,
@@ -65,11 +87,18 @@ async function loadState() {
   await mkdir(dataDir, { recursive: true });
   const lessons = await readJson(lessonsFile, sampleLessons);
   const progress = await readJson(progressFile, {});
-  const normalizedLessons = Array.isArray(lessons) && lessons.length > 0 ? lessons : sampleLessons;
+  const normalizedLessons =
+    Array.isArray(lessons) && lessons.length > 0
+      ? mergeCurrentSampleLessons(lessons)
+      : sampleLessons;
   const normalizedProgress =
     progress && typeof progress === "object" && !Array.isArray(progress) ? progress : {};
 
-  if (!Array.isArray(lessons) || lessons.length === 0) {
+  if (
+    !Array.isArray(lessons) ||
+    lessons.length === 0 ||
+    JSON.stringify(lessons) !== JSON.stringify(normalizedLessons)
+  ) {
     await writeJson(lessonsFile, normalizedLessons);
   }
 

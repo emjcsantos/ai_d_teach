@@ -43,12 +43,11 @@ export function QuizPanel({ lesson, progress, onAnswer, onComplete }: QuizPanelP
     [lesson.id, progress],
   );
   const feedbackByQuestionId = { ...savedFeedback, ...localFeedback };
-  const answeredCount = lesson.quiz.filter((question) => feedbackByQuestionId[question.id]).length;
   const correctCount = lesson.quiz.filter(
     (question) => feedbackByQuestionId[question.id]?.correct,
   ).length;
   const hasQuestions = lesson.quiz.length > 0;
-  const isComplete = hasQuestions && answeredCount === lesson.quiz.length;
+  const isComplete = hasQuestions && correctCount === lesson.quiz.length;
 
   function handleAnswer(question: QuizQuestion, selected: string) {
     const correct = selected === question.answer;
@@ -104,7 +103,7 @@ export function QuizPanel({ lesson, progress, onAnswer, onComplete }: QuizPanelP
                   >
                     {feedback.correct
                       ? `Correct. ${question.explanation}`
-                      : `Try again. The answer is ${question.answer}. ${question.explanation}`}
+                      : "Not yet. Look back at the canvas or formula, then try another choice."}
                   </p>
                 ) : null}
               </li>
@@ -118,7 +117,7 @@ export function QuizPanel({ lesson, progress, onAnswer, onComplete }: QuizPanelP
       <button
         type="button"
         className="quiz-panel__complete"
-        disabled={hasQuestions && !isComplete}
+        disabled={!isComplete}
         onClick={onComplete}
       >
         Complete Quiz

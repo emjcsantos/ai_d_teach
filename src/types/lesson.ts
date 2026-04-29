@@ -8,6 +8,7 @@ export type LessonVisual =
       parts: number;
       highlight: number;
       label: string;
+      practiceTargets?: number[];
     }
   | {
       kind: "word_cards";
@@ -22,6 +23,11 @@ export type LessonVisual =
       kind: "formula_board";
       formula: string;
       explanation: string;
+      tasks?: Array<{
+        instruction: string;
+        target: string;
+        success: string;
+      }>;
     };
 
 export type LessonStep = {

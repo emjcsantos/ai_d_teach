@@ -131,7 +131,7 @@ export function LessonPlayer({
   const currentStep = lesson.steps[safeStepIndex];
   const currentStepId = currentStep?.id;
   const rate = useMemo(() => clamp(voiceRate, MIN_RATE, MAX_RATE), [voiceRate]);
-  const progressPercent = stepCount > 0 ? Math.round(((safeStepIndex + 1) / stepCount) * 100) : 0;
+  const stepLabel = stepCount > 0 ? `${safeStepIndex + 1}/${stepCount}` : "0/0";
 
   useEffect(() => {
     setSpeechAvailable(canSpeak());
@@ -230,8 +230,8 @@ export function LessonPlayer({
         </div>
         <div className="lesson-hero__badge" aria-live="polite">
           <Sparkles size={22} aria-hidden="true" />
-          <strong>{progressPercent}%</strong>
-          <span>mission</span>
+          <strong>{stepLabel}</strong>
+          <span>step</span>
         </div>
       </header>
 

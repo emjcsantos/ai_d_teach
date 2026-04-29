@@ -33,6 +33,28 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   }
 }
 
+function mergeCurrentSampleLessons(lessons: Lesson[]) {
+  const sampleById = new Map(sampleLessons.map((lesson) => [lesson.id, lesson]));
+  const seenIds = new Set<string>();
+  const mergedLessons = lessons.map((lesson) => {
+    const sampleLesson = sampleById.get(lesson.id);
+    seenIds.add(lesson.id);
+
+    if (!sampleLesson) {
+      return lesson;
+    }
+
+    return {
+      ...sampleLesson,
+      createdAt: lesson.createdAt || sampleLesson.createdAt,
+      updatedAt: sampleLesson.updatedAt,
+    };
+  });
+  const missingSamples = sampleLessons.filter((lesson) => !seenIds.has(lesson.id));
+
+  return [...mergedLessons, ...missingSamples];
+}
+
 export function loadLessons(): Lesson[] {
   const stored = window.localStorage.getItem(LESSONS_KEY);
 
@@ -43,7 +65,9 @@ export function loadLessons(): Lesson[] {
 
   try {
     const parsed = JSON.parse(stored) as Lesson[];
-    return Array.isArray(parsed) ? parsed : sampleLessons;
+    const lessons = Array.isArray(parsed) ? mergeCurrentSampleLessons(parsed) : sampleLessons;
+    saveLessons(lessons);
+    return lessons;
   } catch {
     return sampleLessons;
   }
@@ -76,7 +100,9 @@ export function findReusableLesson(topic: string, gradeLevel: string) {
 
 export async function loadLessonsFromRepository(): Promise<Lesson[]> {
   const response = await requestJson<{ lessons: Lesson[] }>("/api/lessons");
-  const lessons = Array.isArray(response.lessons) ? response.lessons : sampleLessons;
+  const lessons = Array.isArray(response.lessons)
+    ? mergeCurrentSampleLessons(response.lessons)
+    : sampleLessons;
   saveLessons(lessons);
   return lessons;
 }

@@ -48,10 +48,15 @@ type FractionScenario = {
   target: number;
 };
 
-function buildFractionScenarios(parts: number, highlightedCount: number) {
-  const targets = [highlightedCount, Math.ceil(parts / 2), Math.max(1, parts - 1), parts].filter(
+function buildFractionScenarios(
+  parts: number,
+  highlightedCount: number,
+  practiceTargets?: number[],
+) {
+  const validTargets = (practiceTargets?.length ? practiceTargets : [highlightedCount]).filter(
     (target, index, values) => target >= 1 && target <= parts && values.indexOf(target) === index,
   );
+  const targets = validTargets.length ? validTargets : [clampInteger(highlightedCount, 1, parts)];
 
   return targets.map<FractionScenario>((target) => {
     const label = `${target}/${parts}`;
@@ -68,32 +73,19 @@ function buildFractionScenarios(parts: number, highlightedCount: number) {
   });
 }
 
-function FractionPizza({
-  visual,
-  onPracticeStateChange,
+function InstructorTaskCard({
+  current,
+  instruction,
+  total,
   voiceRate,
 }: {
-  visual: Extract<LessonVisual, { kind: "fraction_pizza" }>;
-  onPracticeStateChange?: (state: CanvasPracticeState) => void;
+  current: number;
+  instruction: string;
+  total: number;
   voiceRate: number;
 }) {
-  const parts = clampInteger(visual.parts, 1, 16);
-  const highlightedCount = clampInteger(visual.highlight, 0, parts);
-  const scenarios = useMemo(
-    () => buildFractionScenarios(parts, Math.max(1, highlightedCount)),
-    [highlightedCount, parts],
-  );
   const [speechAvailable, setSpeechAvailable] = useState(false);
   const [isReadingInstruction, setIsReadingInstruction] = useState(false);
-  const [scenarioIndex, setScenarioIndex] = useState(0);
-  const [selectedSlices, setSelectedSlices] = useState<Set<number>>(() => new Set());
-  const safeScenarioIndex = clampInteger(scenarioIndex, 0, scenarios.length - 1);
-  const scenario = scenarios[safeScenarioIndex];
-  const selectedCount = selectedSlices.size;
-  const matchesTarget = selectedCount === scenario.target;
-  const isLastScenario = safeScenarioIndex === scenarios.length - 1;
-  const practiceComplete = matchesTarget && isLastScenario;
-  const targetLabel = `${scenario.target}/${parts}`;
 
   useEffect(() => {
     setSpeechAvailable(canSpeak());
@@ -106,9 +98,88 @@ function FractionPizza({
   }, []);
 
   useEffect(() => {
+    setIsReadingInstruction(false);
+  }, [instruction]);
+
+  function toggleInstructionVoice() {
+    if (isReadingInstruction) {
+      stopSpeaking();
+      setIsReadingInstruction(false);
+      return;
+    }
+
+    setIsReadingInstruction(true);
+    speak(instruction, {
+      rate: voiceRate,
+      onEnd: () => setIsReadingInstruction(false),
+    });
+  }
+
+  return (
+    <section className="instructor-card" aria-live="polite">
+      <div>
+        <span>Teacher task</span>
+        <strong>{instruction}</strong>
+      </div>
+      <div className="instructor-card__controls">
+        <button
+          type="button"
+          className="instructor-voice"
+          disabled={!speechAvailable}
+          onClick={toggleInstructionVoice}
+          title={speechAvailable ? "Read teacher task aloud" : "Browser speech is unavailable"}
+        >
+          {isReadingInstruction ? <Square size={16} aria-hidden="true" /> : <Play size={16} aria-hidden="true" />}
+          <span>{isReadingInstruction ? "Stop" : "Read"}</span>
+        </button>
+        <div className="instructor-progress" aria-label={`Scenario ${current + 1} of ${total}`}>
+          {Array.from({ length: total }, (_, index) => (
+            <span
+              key={index}
+              className={[
+                "instructor-progress__dot",
+                index < current ? "is-done" : "",
+                index === current ? "is-current" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FractionPizza({
+  visual,
+  onPracticeStateChange,
+  voiceRate,
+}: {
+  visual: Extract<LessonVisual, { kind: "fraction_pizza" }>;
+  onPracticeStateChange?: (state: CanvasPracticeState) => void;
+  voiceRate: number;
+}) {
+  const parts = clampInteger(visual.parts, 1, 16);
+  const highlightedCount = clampInteger(visual.highlight, 0, parts);
+  const scenarios = useMemo(
+    () => buildFractionScenarios(parts, Math.max(1, highlightedCount), visual.practiceTargets),
+    [highlightedCount, parts, visual.practiceTargets],
+  );
+  const [scenarioIndex, setScenarioIndex] = useState(0);
+  const [selectedSlices, setSelectedSlices] = useState<Set<number>>(() => new Set());
+  const safeScenarioIndex = clampInteger(scenarioIndex, 0, scenarios.length - 1);
+  const scenario = scenarios[safeScenarioIndex];
+  const selectedCount = selectedSlices.size;
+  const matchesTarget = selectedCount === scenario.target;
+  const isLastScenario = safeScenarioIndex === scenarios.length - 1;
+  const practiceComplete = matchesTarget && isLastScenario;
+  const targetLabel = `${scenario.target}/${parts}`;
+
+  useEffect(() => {
     setScenarioIndex(0);
     setSelectedSlices(new Set());
-  }, [parts, highlightedCount]);
+  }, [parts, highlightedCount, visual.practiceTargets]);
 
   useEffect(() => {
     onPracticeStateChange?.({
@@ -117,25 +188,6 @@ function FractionPizza({
       prompt: scenario.instruction,
     });
   }, [onPracticeStateChange, practiceComplete, scenario.instruction]);
-
-  useEffect(() => {
-    setIsReadingInstruction(false);
-    if (!canSpeak()) {
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      setIsReadingInstruction(true);
-      speak(scenario.instruction, {
-        rate: voiceRate,
-        onEnd: () => setIsReadingInstruction(false),
-      });
-    }, 80);
-
-    return () => {
-      window.clearTimeout(timeout);
-    };
-  }, [scenario.instruction, voiceRate]);
 
   function toggleSlice(index: number) {
     setSelectedSlices((current) => {
@@ -158,54 +210,14 @@ function FractionPizza({
     setSelectedSlices(new Set());
   }
 
-  function toggleInstructionVoice() {
-    if (isReadingInstruction) {
-      stopSpeaking();
-      setIsReadingInstruction(false);
-      return;
-    }
-
-    setIsReadingInstruction(true);
-    speak(scenario.instruction, {
-      rate: voiceRate,
-      onEnd: () => setIsReadingInstruction(false),
-    });
-  }
-
   return (
     <div className="canvas-visual canvas-visual--fraction">
-      <section className="instructor-card" aria-live="polite">
-        <div>
-          <span>Teacher task</span>
-          <strong>{scenario.instruction}</strong>
-        </div>
-        <div className="instructor-card__controls">
-          <button
-            type="button"
-            className="instructor-voice"
-            disabled={!speechAvailable}
-            onClick={toggleInstructionVoice}
-            title={speechAvailable ? "Read teacher task aloud" : "Browser speech is unavailable"}
-          >
-            {isReadingInstruction ? <Square size={16} aria-hidden="true" /> : <Play size={16} aria-hidden="true" />}
-            <span>{isReadingInstruction ? "Stop" : "Read"}</span>
-          </button>
-          <div className="instructor-progress" aria-label={`Scenario ${safeScenarioIndex + 1} of ${scenarios.length}`}>
-            {scenarios.map((item, index) => (
-              <span
-                key={`${item.target}-${index}`}
-                className={[
-                  "instructor-progress__dot",
-                  index < safeScenarioIndex ? "is-done" : "",
-                  index === safeScenarioIndex ? "is-current" : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
+      <InstructorTaskCard
+        current={safeScenarioIndex}
+        instruction={scenario.instruction}
+        total={scenarios.length}
+        voiceRate={voiceRate}
+      />
 
       <div className="fraction-workbench">
         <svg
@@ -248,13 +260,13 @@ function FractionPizza({
             <button
               key={index}
               type="button"
-                aria-label={`Toggle fraction bar part ${index + 1}`}
-                aria-pressed={selectedSlices.has(index)}
-                className={
-                  selectedSlices.has(index)
-                    ? "fraction-meter__part is-selected"
-                    : "fraction-meter__part"
-                }
+              aria-label={`Toggle fraction bar part ${index + 1}`}
+              aria-pressed={selectedSlices.has(index)}
+              className={
+                selectedSlices.has(index)
+                  ? "fraction-meter__part is-selected"
+                  : "fraction-meter__part"
+              }
               onClick={() => toggleSlice(index)}
             />
           ))}
@@ -386,22 +398,68 @@ function ScienceCycle({ visual }: { visual: Extract<LessonVisual, { kind: "scien
   );
 }
 
-function FormulaBoard({ visual }: { visual: Extract<LessonVisual, { kind: "formula_board" }> }) {
+function FormulaBoard({
+  visual,
+  onPracticeStateChange,
+  voiceRate,
+}: {
+  visual: Extract<LessonVisual, { kind: "formula_board" }>;
+  onPracticeStateChange?: (state: CanvasPracticeState) => void;
+  voiceRate: number;
+}) {
   const formulaParts = useMemo(
     () => visual.formula.match(/[A-Za-z0-9]+|[^A-Za-z0-9\s]+/g) ?? [visual.formula],
     [visual.formula],
   );
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [taskIndex, setTaskIndex] = useState(0);
+  const [taskWasTried, setTaskWasTried] = useState(false);
+  const tasks = visual.tasks ?? [];
+  const safeTaskIndex = clampInteger(taskIndex, 0, Math.max(0, tasks.length - 1));
+  const task = tasks[safeTaskIndex];
 
   useEffect(() => {
     setSelectedIndex(0);
-  }, [visual.formula]);
+    setTaskIndex(0);
+    setTaskWasTried(false);
+  }, [visual.formula, visual.tasks]);
 
   const safeSelectedIndex = clampInteger(selectedIndex, 0, formulaParts.length - 1);
   const selectedToken = formulaParts[safeSelectedIndex];
+  const selectedTokenMatchesTask =
+    Boolean(task) &&
+    taskWasTried &&
+    selectedToken.trim().toLowerCase() === task.target.trim().toLowerCase();
+  const isLastTask = safeTaskIndex === tasks.length - 1;
+  const practiceComplete = Boolean(task) && selectedTokenMatchesTask && isLastTask;
+
+  useEffect(() => {
+    onPracticeStateChange?.({
+      active: tasks.length > 0,
+      complete: practiceComplete,
+      prompt: task?.instruction ?? "",
+    });
+  }, [onPracticeStateChange, practiceComplete, task?.instruction, tasks.length]);
+
+  function moveToNextTask() {
+    if (!selectedTokenMatchesTask || isLastTask) {
+      return;
+    }
+
+    setTaskIndex((current) => clampInteger(current + 1, 0, tasks.length - 1));
+    setTaskWasTried(false);
+  }
 
   return (
     <div className="canvas-visual canvas-visual--formula">
+      {task ? (
+        <InstructorTaskCard
+          current={safeTaskIndex}
+          instruction={task.instruction}
+          total={tasks.length}
+          voiceRate={voiceRate}
+        />
+      ) : null}
       <div className="formula-workbench">
         <div className="formula-token-row" aria-label="Formula tokens">
           {formulaParts.map((part, index) => {
@@ -412,7 +470,10 @@ function FormulaBoard({ visual }: { visual: Extract<LessonVisual, { kind: "formu
                 type="button"
                 aria-pressed={selected}
                 className={selected ? "formula-token is-selected" : "formula-token"}
-                onClick={() => setSelectedIndex(index)}
+                onClick={() => {
+                  setSelectedIndex(index);
+                  setTaskWasTried(true);
+                }}
                 style={{ "--token-color": tokenPalette[index % tokenPalette.length] } as CSSProperties}
               >
                 {part}
@@ -423,7 +484,18 @@ function FormulaBoard({ visual }: { visual: Extract<LessonVisual, { kind: "formu
         <div className="formula-explainer">
           <span>Focus piece</span>
           <strong>{selectedToken}</strong>
-          <p>{visual.explanation}</p>
+          <p>
+            {task
+              ? selectedTokenMatchesTask
+                ? task.success
+                : `Tap ${task.target} in the formula.`
+              : visual.explanation}
+          </p>
+          {task && selectedTokenMatchesTask && !isLastTask ? (
+            <button type="button" className="formula-task-next" onClick={moveToNextTask}>
+              Next task
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
@@ -449,7 +521,13 @@ function renderVisual(
     case "science_cycle":
       return <ScienceCycle visual={visual} />;
     case "formula_board":
-      return <FormulaBoard visual={visual} />;
+      return (
+        <FormulaBoard
+          visual={visual}
+          voiceRate={voiceRate}
+          onPracticeStateChange={onPracticeStateChange}
+        />
+      );
     default: {
       const unreachable: never = visual;
       return unreachable;

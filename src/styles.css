@@ -46,6 +46,49 @@ button {
   padding: 18px;
 }
 
+.parent-tools-toggle {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  border: 1px solid rgba(24, 33, 47, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.96);
+  color: var(--ink);
+  padding: 8px 10px;
+  box-shadow: 0 10px 24px rgba(24, 33, 47, 0.12);
+  font-weight: 850;
+}
+
+.app-shell.is-student-focus {
+  grid-template-columns: minmax(0, 1fr);
+  padding-top: 58px;
+}
+
+.app-shell.is-student-focus .control-rail {
+  display: none;
+}
+
+.app-shell.is-student-focus .learning-stage,
+.app-shell.is-student-focus .insight-rail {
+  grid-column: 1;
+}
+
+.app-shell.is-student-focus .insight-rail {
+  grid-template-columns: minmax(0, 720px);
+  justify-content: center;
+}
+
+.app-shell.is-student-focus .feedback-panel,
+.app-shell.is-student-focus .ralph-panel {
+  display: none;
+}
+
 .control-rail,
 .insight-rail {
   display: flex;
@@ -1224,6 +1267,12 @@ button:disabled,
   align-items: center;
 }
 
+.canvas-visual--formula {
+  display: grid;
+  gap: 16px;
+  justify-items: center;
+}
+
 .instructor-card {
   grid-column: 1 / -1;
   display: flex;
@@ -1430,6 +1479,17 @@ button:disabled,
   border-radius: 8px;
   background: var(--ink);
   color: #ffffff;
+  font-weight: 850;
+}
+
+.formula-task-next {
+  justify-self: start;
+  min-height: 40px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #172033;
+  padding: 8px 12px;
   font-weight: 850;
 }
 

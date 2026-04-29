@@ -21,13 +21,15 @@ The current prototype scope is a Vite and React app with local lesson storage, s
 - Saved lesson library.
 - Local lesson repository reuse before creating a new lesson.
 - Manual import or local starter lesson creation before optional API generation.
-- Child-facing lesson player with a mission header, read-only step path, instructor-led canvas tasks, coach prompts, and a tutor-led Continue flow.
+- Child-facing lesson player with a mission header, read-only step path, instructor-led canvas tasks, coach prompts, and a tutor-led or task-led Continue flow.
+- Default student view that keeps parent tools and feedback panels tucked away behind a Parent tools toggle.
 - Browser TTS narration with visible lesson text.
 - Embedded Tutor Chat for lesson-aware conversation with push-to-talk input and spoken replies when browser voice APIs are available.
 - Tutor modes and saved tutor signals for explanation, hints, understanding checks, encouragement, and step advancement.
 - Richer interactive visual scene types for fractions, vocabulary, formulas, and simple science cycles.
-- Fraction canvas practice that speaks each teacher task and asks the child to select several target fractions, such as 1/4, 2/4, 3/4, and 4/4.
-- Quiz flow and completion or progress markers.
+- Fraction canvas practice that starts with 1/4, teaches the formula parts, then asks the child to build harder targets such as 2/4, 3/4, and 4/4.
+- Teacher tasks can be read aloud with explicit Read and Stop controls.
+- Quiz flow with retry-friendly hints and completion only after all answers are correct.
 - Feedback Lab for teacher, student, and improvement notes.
 - Smoke validation for fresh and existing saved state.
 
@@ -35,7 +37,7 @@ The current prototype scope is a Vite and React app with local lesson storage, s
 
 Lessons are stored in the browser using `localStorage` under `ai-d-teach.lessons.v1`. Progress is stored separately under `ai-d-teach.progress.v1` so canonical lesson content can evolve without overwriting quiz attempts, notes, or completion state.
 
-When the ChatGPT App MCP server is running, the standalone app also syncs to the shared JSON-backed repository at `http://127.0.0.1:8787`. That shared repository stores lessons in `data/lessons.json` and progress in `data/progress.json`. Those data files are ignored by Git because they are local user data.
+When the ChatGPT App MCP server is running, the standalone app also syncs to the shared JSON-backed repository at `http://127.0.0.1:8787`. That shared repository stores lessons in `data/lessons.json` and progress in `data/progress.json`. Those data files are ignored by Git because they are local user data. Bundled sample lessons refresh by id when the app changes, while custom lessons and progress remain preserved.
 
 If the shared server is not available, the standalone app falls back to browser `localStorage` automatically.
 

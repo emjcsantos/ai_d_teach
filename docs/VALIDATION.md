@@ -54,6 +54,7 @@ Use a browser state with existing values for:
 Expected results:
 
 - Saved lessons load without being overwritten by bundled samples.
+- Bundled sample lessons refresh by id when sample content changes, without deleting custom lessons or existing progress.
 - Matching topic and grade searches reuse saved lessons before creating new ones.
 - Existing progress remains attached to the correct lesson id.
 - Existing tutor chat transcripts remain attached to the correct lesson id.
@@ -93,7 +94,7 @@ Voice validation should cover:
 
 - Browser TTS available path.
 - Browser TTS unavailable fallback.
-- Spoken teacher-task instructions and replay controls for instructor-led canvas practice.
+- Teacher-task instructions stay visible and can be spoken with explicit Read and Stop controls.
 - Browser Speech Recognition available path.
 - Browser Speech Recognition unavailable typed fallback.
 - Push-to-talk starts only after a user action and stops after one utterance or explicit stop.
@@ -138,8 +139,10 @@ For UI changes, check common laptop and tablet sizes. The app should:
 - Avoid text overlap.
 - Open with the interactive lesson surface first on small screens.
 - Keep the primary lesson clicks focused on the canvas, tutor conversation, and simple step navigation.
-- For fractions, verify instructor-led tasks check multiple target selections before Continue appears.
-- Show Continue only after the tutor records solid understanding for the current step.
+- For fractions, verify the first step asks only for 1/4, the formula step requires tapping the requested formula tokens, and later practice checks 2/4, 3/4, and 4/4 before Continue appears.
+- Show Continue only after the tutor records solid understanding for the current step or the child completes the active instructor-led canvas task.
+- In student view, parent tools, feedback notes, and Ralph Loop diagnostics should remain hidden behind the Parent tools toggle.
+- Quiz completion should remain disabled until every answer is correct, and wrong answers should give a hint without revealing the answer.
 - Keep lesson visuals usable on smaller screens.
 - Keep quiz choices easy to select.
 - Preserve visible narration and prompts while TTS controls are used.
