@@ -108,6 +108,7 @@ Voice validation should cover:
 - Browser TTS available path.
 - Browser TTS unavailable fallback.
 - Teacher-task instructions stay visible and can be spoken with explicit Read and Stop controls.
+- Browser TTS should prefer a friendly English voice when available, with a slower child-friendly rate and softer volume.
 - Browser Speech Recognition available path.
 - Browser Speech Recognition unavailable typed fallback.
 - Browser Speech Recognition `network`, permission, and no-speech errors show child-readable fallback guidance instead of raw browser error codes.

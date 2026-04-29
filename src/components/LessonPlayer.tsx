@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Play, Sparkles, Square } from "lucide-react";
-import { canSpeak, speak, stopSpeaking } from "../lib/textToSpeech";
+import { canSpeak, speak, stopSpeaking, warmUpSpeechVoices } from "../lib/textToSpeech";
 import type { Lesson, LessonProgress, TutorSignal, TutorTurn } from "../types/lesson";
 import { LessonCanvas, type CanvasActivityAttempt, type CanvasPracticeState } from "./LessonCanvas";
 import { TutorChat } from "./TutorChat";
@@ -137,6 +137,7 @@ export function LessonPlayer({
 
   useEffect(() => {
     setSpeechAvailable(canSpeak());
+    warmUpSpeechVoices();
   }, []);
 
   useEffect(() => {

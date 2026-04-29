@@ -5,7 +5,7 @@ import {
   createSpeechListener,
   type SpeechListener,
 } from "../lib/speechToText";
-import { canSpeak, speak, stopSpeaking } from "../lib/textToSpeech";
+import { canSpeak, speak, stopSpeaking, warmUpSpeechVoices } from "../lib/textToSpeech";
 import type { Lesson, LessonProgress, TutorTurn } from "../types/lesson";
 
 export type TutorChatProps = {
@@ -47,6 +47,7 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
   useEffect(() => {
     setSpeechInputAvailable(canListen());
     setSpeechAvailable(canSpeak());
+    warmUpSpeechVoices();
   }, []);
 
   useEffect(() => {

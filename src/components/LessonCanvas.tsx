@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Play, Square } from "lucide-react";
-import { canSpeak, speak, stopSpeaking } from "../lib/textToSpeech";
+import { canSpeak, speak, stopSpeaking, warmUpSpeechVoices } from "../lib/textToSpeech";
 import type { LessonActivityTask, LessonStep, LessonVisual } from "../types/lesson";
 
 export type CanvasPracticeState = {
@@ -120,6 +120,7 @@ function InstructorTaskCard({
 
   useEffect(() => {
     setSpeechAvailable(canSpeak());
+    warmUpSpeechVoices();
   }, []);
 
   useEffect(() => {

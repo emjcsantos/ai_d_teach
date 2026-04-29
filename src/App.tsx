@@ -22,7 +22,7 @@ import { requestTutorTurn } from "./lib/tutorApi";
 import type { CanvasActivityAttempt } from "./components/LessonCanvas";
 import type { ChatMessage, Difficulty, GradeLevel, Lesson, TutorTurn } from "./types/lesson";
 
-const DEFAULT_VOICE_RATE = 0.95;
+const DEFAULT_VOICE_RATE = 0.88;
 
 export default function App() {
   const [lessons, setLessons] = useState<Lesson[]>(() => loadLessons());
