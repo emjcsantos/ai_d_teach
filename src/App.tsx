@@ -203,6 +203,16 @@ export default function App() {
   async function handleSendTutorMessage(message: string) {
     const currentStep = activeLesson.steps[currentStepIndex] ?? activeLesson.steps[0];
     const currentProgress = getLessonProgress(activeLesson.id);
+    const userMessage = createChatMessage("student", message, currentStep?.id);
+
+    const progressWithUserMessage = {
+      ...currentProgress,
+      chatMessages: [...currentProgress.chatMessages, userMessage],
+    };
+
+    void updateLessonProgressInRepository(progressWithUserMessage);
+    setProgressVersion((version) => version + 1);
+
     let tutorTurn: TutorTurn;
 
     if (currentStep) {
@@ -211,14 +221,14 @@ export default function App() {
           lesson: activeLesson,
           currentStep,
           message,
-          progress: currentProgress,
+          progress: progressWithUserMessage,
         });
       } catch {
         tutorTurn = buildTutorTurn({
           lesson: activeLesson,
           currentStep,
           message,
-          progress: currentProgress,
+          progress: progressWithUserMessage,
         });
       }
     } else {
@@ -231,7 +241,6 @@ export default function App() {
       };
     }
 
-    const userMessage = createChatMessage("student", message, currentStep?.id);
     const tutorMessage = createChatMessage("tutor", tutorTurn.reply, currentStep?.id, tutorTurn);
     const tutorSignal = currentStep
       ? {
@@ -245,13 +254,14 @@ export default function App() {
           createdAt: tutorMessage.createdAt,
         }
       : undefined;
+    const latestProgress = getLessonProgress(activeLesson.id);
 
     void updateLessonProgressInRepository({
-      ...currentProgress,
-      chatMessages: [...currentProgress.chatMessages, userMessage, tutorMessage],
+      ...latestProgress,
+      chatMessages: [...latestProgress.chatMessages, tutorMessage],
       tutorSignals: tutorSignal
-        ? [...currentProgress.tutorSignals, tutorSignal]
-        : currentProgress.tutorSignals,
+        ? [...latestProgress.tutorSignals, tutorSignal]
+        : latestProgress.tutorSignals,
     });
     setProgressVersion((version) => version + 1);
 

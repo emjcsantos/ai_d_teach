@@ -70,7 +70,7 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
 
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
-  }, [messages.length]);
+  }, [isWaitingForTutor, messages.length]);
 
   async function sendMessage(message: string) {
     const cleanMessage = message.trim();
@@ -187,6 +187,12 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
             <p>{message.text}</p>
           </article>
         ))}
+        {isWaitingForTutor ? (
+          <article className="tutor-chat__message is-tutor is-thinking" aria-label="Tutor is thinking">
+            <span>Tutor</span>
+            <p>Thinking...</p>
+          </article>
+        ) : null}
       </div>
 
       <form

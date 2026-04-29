@@ -19,7 +19,7 @@ export async function requestTutorTurn({
   progress: LessonProgress;
 }): Promise<TutorTurn> {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 12000);
+  const timeout = window.setTimeout(() => controller.abort(), 6500);
 
   try {
     const response = await fetch(`${getRepositoryBaseUrl()}/api/tutor`, {

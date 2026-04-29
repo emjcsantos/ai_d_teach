@@ -857,6 +857,11 @@ button:disabled,
   border-color: rgba(28, 138, 138, 0.22);
 }
 
+.tutor-chat__message.is-thinking {
+  color: var(--muted);
+  font-style: italic;
+}
+
 .tutor-chat__message span {
   color: var(--muted);
   font-size: 0.74rem;
