@@ -182,6 +182,60 @@ function looksLikeStudentAnswer(text: string) {
   return text.split(/\s+/).filter(Boolean).length >= 3 && !looksLikeQuestion(text);
 }
 
+function buildConversationalTurn(message: string, lesson: Lesson): TutorTurn | undefined {
+  if (includesAny(message, ["can you hear me", "can u hear me", "do you hear me", "are you listening"])) {
+    return makeTurn({
+      reply: `I can see your words here. If you press Talk and allow the microphone, I can listen too. I'm right here with you.`,
+      mode: "encourage",
+      understanding: "not_checked",
+      nextAction: "answer",
+      canContinue: false,
+    });
+  }
+
+  if (includesAny(message, ["hello", "hi", "hey", "good morning", "good afternoon", "good evening"])) {
+    return makeTurn({
+      reply: `Hi! I'm happy you're here. We can talk, and I'll help you with ${lesson.topic} one small step at a time.`,
+      mode: "encourage",
+      understanding: "not_checked",
+      nextAction: "answer",
+      canContinue: false,
+    });
+  }
+
+  if (includesAny(message, ["who are you", "what are you", "your name"])) {
+    return makeTurn({
+      reply: `I'm your AI tutor. I can talk with you, give hints, and help you figure things out without rushing.`,
+      mode: "encourage",
+      understanding: "not_checked",
+      nextAction: "answer",
+      canContinue: false,
+    });
+  }
+
+  if (includesAny(message, ["thank you", "thanks", "thank u"])) {
+    return makeTurn({
+      reply: `You're welcome. Nice learning energy. Tell me what you want to try next.`,
+      mode: "encourage",
+      understanding: "not_checked",
+      nextAction: "answer",
+      canContinue: false,
+    });
+  }
+
+  if (includesAny(message, ["i'm scared", "i am scared", "i'm nervous", "i am nervous", "too hard"])) {
+    return makeTurn({
+      reply: `That's okay. We can go slowly. Try one tiny step, and I'll help you if it feels tricky.`,
+      mode: "encourage",
+      understanding: "emerging",
+      nextAction: "answer",
+      canContinue: false,
+    });
+  }
+
+  return undefined;
+}
+
 function assessUnderstanding(message: string, step: LessonStep) {
   if (step.visual.kind === "fraction_pizza") {
     return assessFractionUnderstanding(message, step.visual);
@@ -217,7 +271,6 @@ export function buildTutorTurn({ lesson, currentStep, message, progress }: Tutor
   const normalizedMessage = normalizeText(message);
   const quizQuestion = getNextQuizQuestion(lesson, progress);
   const latestSignal = getLatestStepSignal(progress, currentStep.id);
-  const understanding = assessUnderstanding(normalizedMessage, currentStep);
 
   if (!normalizedMessage) {
     return makeTurn({
@@ -228,6 +281,14 @@ export function buildTutorTurn({ lesson, currentStep, message, progress }: Tutor
       canContinue: false,
     });
   }
+
+  const conversationalTurn = buildConversationalTurn(normalizedMessage, lesson);
+
+  if (conversationalTurn) {
+    return conversationalTurn;
+  }
+
+  const understanding = assessUnderstanding(normalizedMessage, currentStep);
 
   if (includesAny(normalizedMessage, ["hint", "help", "stuck", "confused"])) {
     return makeTurn({
