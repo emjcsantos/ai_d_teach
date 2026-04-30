@@ -862,6 +862,13 @@ button:disabled,
   font-style: italic;
 }
 
+.tutor-chat__message.is-thinking p::after {
+  content: "...";
+  display: inline-block;
+  width: 1.4em;
+  animation: thinkingDots 1.2s steps(4, end) infinite;
+}
+
 .tutor-chat__message span {
   color: var(--muted);
   font-size: 0.74rem;
@@ -906,6 +913,18 @@ button:disabled,
   color: #176c6c;
   font-size: 0.88rem;
   line-height: 1.4;
+}
+
+.tutor-chat__speech-status.is-listening {
+  border-color: rgba(28, 138, 138, 0.34);
+  background: rgba(28, 138, 138, 0.12);
+  font-weight: 800;
+}
+
+.tutor-chat__speech-status.is-thinking {
+  border-color: rgba(242, 184, 75, 0.34);
+  background: rgba(242, 184, 75, 0.14);
+  color: #745313;
 }
 
 .tutor-chat__speech-status.is-error {
@@ -954,6 +973,16 @@ button:disabled,
   border-color: transparent;
   background: var(--ink);
   color: white;
+}
+
+@keyframes thinkingDots {
+  0% {
+    width: 0;
+  }
+
+  100% {
+    width: 1.4em;
+  }
 }
 
 .feedback-panel {

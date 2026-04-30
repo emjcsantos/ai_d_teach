@@ -190,7 +190,7 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
         {isWaitingForTutor ? (
           <article className="tutor-chat__message is-tutor is-thinking" aria-label="Tutor is thinking">
             <span>Tutor</span>
-            <p>Thinking...</p>
+            <p>Let me think for a second</p>
           </article>
         ) : null}
       </div>
@@ -207,15 +207,26 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
           <textarea
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder={isListening ? "I'm listening..." : "Say hi, ask for help, or tell me what you notice."}
+            placeholder={isListening ? "I'm listening..." : "Say hi, ask for help, or tell me what you notice"}
             disabled={isWaitingForTutor}
             rows={3}
           />
         </label>
 
-        {interimTranscript || voiceError ? (
-          <p className={voiceError ? "tutor-chat__speech-status is-error" : "tutor-chat__speech-status"}>
-            {voiceError || interimTranscript}
+        {isListening || interimTranscript || voiceError || isWaitingForTutor ? (
+          <p
+            className={[
+              "tutor-chat__speech-status",
+              voiceError ? "is-error" : "",
+              isListening ? "is-listening" : "",
+              isWaitingForTutor ? "is-thinking" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            {voiceError ||
+              interimTranscript ||
+              (isListening ? "I'm listening. Say one thought." : "I'm getting your answer ready.")}
           </p>
         ) : null}
 
