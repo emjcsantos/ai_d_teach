@@ -1789,6 +1789,7 @@ button:disabled,
 .tutor-guidance {
   border-color: rgba(110, 111, 191, 0.24);
   background: #f7f6ff;
+  box-shadow: 0 14px 32px rgba(110, 111, 191, 0.12);
 }
 
 .tutor-guidance.is-solid {

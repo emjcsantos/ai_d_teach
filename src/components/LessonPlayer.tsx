@@ -72,8 +72,8 @@ function getTutorGuidance(
   if (!signal) {
     return {
       title: "Tell the tutor what you notice",
-      body: "Answer in your own words. When the tutor sees understanding, Continue will appear.",
-      label: "Waiting",
+      body: "Look at the canvas, then tell the tutor one thing you see.",
+      label: "Your turn",
     };
   }
 
@@ -298,13 +298,6 @@ export function LessonPlayer({
             </section>
           ) : null}
 
-          <TutorChat
-            lesson={lesson}
-            progress={progress}
-            voiceRate={rate}
-            onSendMessage={onSendMessage}
-          />
-
           <section
             className={[
               "coach-card",
@@ -319,6 +312,13 @@ export function LessonPlayer({
             <h2>{tutorGuidance.title}</h2>
             <p>{tutorGuidance.body}</p>
           </section>
+
+          <TutorChat
+            lesson={lesson}
+            progress={progress}
+            voiceRate={rate}
+            onSendMessage={onSendMessage}
+          />
 
           {hasPrevious || canContinue ? (
             <div className="lesson-nav-actions">

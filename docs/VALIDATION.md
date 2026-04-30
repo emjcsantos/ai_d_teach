@@ -162,6 +162,7 @@ For UI changes, check common laptop and tablet sizes. The app should:
 - Keep the primary lesson clicks focused on the canvas, tutor conversation, and simple step navigation.
 - For fractions, verify the first step asks only for 1/4, the formula step requires tapping the requested formula tokens, and later practice checks 2/4, 3/4, and 4/4 before Continue appears.
 - Show Continue only after the tutor records solid understanding for the current step or the child completes the active instructor-led canvas task.
+- Show current step guidance before Tutor Chat so the child sees the next learning action before asking open-ended questions.
 - For Photosynthesis, verify teacher tasks require tapping sunlight, water, oxygen, and glucose before task completion.
 - In student view, parent tools, feedback notes, and Ralph Loop diagnostics should remain hidden behind the Parent tools toggle.
 - Quiz completion should remain disabled until every answer is correct, and wrong answers should give a hint without revealing the answer.
