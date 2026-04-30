@@ -134,6 +134,7 @@ export function LessonPlayer({
   const currentStepId = currentStep?.id;
   const rate = useMemo(() => clamp(voiceRate, MIN_RATE, MAX_RATE), [voiceRate]);
   const stepLabel = stepCount > 0 ? `${safeStepIndex + 1}/${stepCount}` : "0/0";
+  const progressPercent = stepCount > 0 ? Math.round(((safeStepIndex + 1) / stepCount) * 100) : 0;
 
   useEffect(() => {
     setSpeechAvailable(canSpeak());
@@ -261,6 +262,16 @@ export function LessonPlayer({
           );
         })}
       </ol>
+
+      <section className="quest-progress" aria-label={`Quest progress ${progressPercent}% complete`}>
+        <div>
+          <span>Quest progress</span>
+          <strong>{progressPercent}%</strong>
+        </div>
+        <div className="quest-progress__track" aria-hidden="true">
+          <span style={{ width: `${progressPercent}%` }} />
+        </div>
+      </section>
 
       <div className="learning-arena">
         <LessonCanvas
