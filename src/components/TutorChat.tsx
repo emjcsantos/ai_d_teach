@@ -28,6 +28,7 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
   const listenerRef = useRef<SpeechListener | null>(null);
   const finalTranscriptHandledRef = useRef(false);
   const trimmedDraft = draft.trim();
+  const showQuickPrompts = !trimmedDraft && !isListening && !isWaitingForTutor;
 
   const messages = useMemo(
     () =>
@@ -228,6 +229,20 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
               interimTranscript ||
               (isListening ? "I'm listening. Say one thought." : "I'm getting your answer ready.")}
           </p>
+        ) : null}
+
+        {showQuickPrompts ? (
+          <div className="tutor-chat__quick-prompts" aria-label="Conversation starters">
+            <button type="button" onClick={() => void sendMessage("What do I do?")}>
+              What do I do?
+            </button>
+            <button type="button" onClick={() => void sendMessage("Hint please")}>
+              Hint please
+            </button>
+            <button type="button" onClick={() => setDraft("I notice ")}>
+              I notice...
+            </button>
+          </div>
         ) : null}
 
         <div className="tutor-chat__actions">

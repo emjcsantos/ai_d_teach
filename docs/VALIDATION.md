@@ -54,6 +54,7 @@ Expected results:
 - Tutor Chat should show warm listening and thinking states instead of raw system-like status text.
 - Tutor Chat should answer greetings, "can you hear me", "can you see me", "are you AI", yes/no replies, frustration, what-to-do-next questions, and simple child check-ins naturally before redirecting back to lesson work.
 - Tutor Chat should not mistake normal lesson words such as "this" for greetings such as "hi".
+- Tutor Chat should offer a few reusable conversation starters for children who do not know what to type.
 - Tutor Chat falls back to the local tutor when `/api/tutor` is unavailable or OpenAI is not configured.
 - Quiz flow records attempts and explanations.
 - Feedback Lab can save teacher, student, and improvement notes.
