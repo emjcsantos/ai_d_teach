@@ -157,6 +157,7 @@ For ChatGPT testing, expose port `8787` with an HTTPS tunnel and add the `/mcp` 
 For UI changes, check common laptop and tablet sizes. The app should:
 
 - Keep controls readable.
+- Keep Tutor Chat action buttons stable and full-width on smaller screens.
 - Avoid text overlap.
 - Open with the interactive lesson surface first on small screens.
 - Keep the primary lesson clicks focused on the canvas, tutor conversation, and simple step navigation.

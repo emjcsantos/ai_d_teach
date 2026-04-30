@@ -934,9 +934,9 @@ button:disabled,
 }
 
 .tutor-chat__actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  display: grid;
+  grid-template-columns: minmax(132px, auto) minmax(156px, auto);
+  justify-content: end;
   gap: 8px;
 }
 
@@ -948,9 +948,11 @@ button:disabled,
   justify-content: center;
   gap: 8px;
   min-height: 40px;
+  padding: 0 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
   font-weight: 850;
+  white-space: nowrap;
 }
 
 .tutor-chat__listen {
@@ -1968,5 +1970,15 @@ button:disabled,
 
   .formula-token {
     font-size: 1.12rem;
+  }
+
+  .tutor-chat__actions {
+    grid-template-columns: 1fr;
+  }
+
+  .tutor-chat__listen,
+  .tutor-chat__stop,
+  .tutor-chat__send {
+    width: 100%;
   }
 }
