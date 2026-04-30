@@ -1811,6 +1811,32 @@ button:disabled,
   text-transform: uppercase;
 }
 
+.learning-celebration {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(94, 159, 88, 0.36);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(94, 159, 88, 0.15), rgba(242, 184, 75, 0.16));
+  color: #23451f;
+}
+
+.learning-celebration strong,
+.learning-celebration span {
+  display: block;
+}
+
+.learning-celebration strong {
+  font-size: 0.98rem;
+}
+
+.learning-celebration span {
+  color: #455369;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
 .lesson-nav-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1855,7 +1881,8 @@ button:disabled,
 
 @media (prefers-reduced-motion: no-preference) {
   .lesson-hero__badge,
-  .coach-card__avatar {
+  .coach-card__avatar,
+  .learning-celebration svg {
     animation: softBounce 3.6s ease-in-out infinite;
   }
 

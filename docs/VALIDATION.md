@@ -166,6 +166,7 @@ For UI changes, check common laptop and tablet sizes. The app should:
 - Show current step guidance before Tutor Chat so the child sees the next learning action before asking open-ended questions.
 - For Photosynthesis, verify teacher tasks require tapping sunlight, water, oxygen, and glucose before task completion.
 - In student view, parent tools, feedback notes, and Ralph Loop diagnostics should remain hidden behind the Parent tools toggle.
+- Completing any canvas task should show a reusable, topic-agnostic celebration moment without blocking the next action.
 - Quiz completion should remain disabled until every answer is correct, and wrong answers should give a hint without revealing the answer.
 - Keep lesson visuals usable on smaller screens.
 - Keep quiz choices easy to select.

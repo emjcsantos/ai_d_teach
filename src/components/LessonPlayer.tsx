@@ -313,6 +313,16 @@ export function LessonPlayer({
             <p>{tutorGuidance.body}</p>
           </section>
 
+          {practiceState?.complete ? (
+            <section className="learning-celebration" aria-live="polite">
+              <Sparkles size={20} aria-hidden="true" />
+              <div>
+                <strong>Nice work</strong>
+                <span>You finished this challenge. Your brain just leveled up a bit.</span>
+              </div>
+            </section>
+          ) : null}
+
           <TutorChat
             lesson={lesson}
             progress={progress}
