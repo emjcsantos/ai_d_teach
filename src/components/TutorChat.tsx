@@ -15,10 +15,51 @@ export type TutorChatProps = {
   onSendMessage: (message: string) => Promise<TutorTurn>;
 };
 
+function escapeRegExp(text: string) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function includesAnyPhrase(text: string, phrases: string[]) {
+  return phrases.some((phrase) => new RegExp(`(^|\\W)${escapeRegExp(phrase)}($|\\W)`).test(text));
+}
+
+function getFastBridgeReply(message: string, topic: string) {
+  const normalizedMessage = message.trim().toLowerCase();
+
+  if (
+    includesAnyPhrase(normalizedMessage, ["hello", "hi", "hey"]) ||
+    normalizedMessage.includes("can you hear") ||
+    normalizedMessage.includes("can you talk")
+  ) {
+    return "Yep, I'm here with you.";
+  }
+
+  if (
+    normalizedMessage.includes("stuck") ||
+    normalizedMessage.includes("don't know") ||
+    normalizedMessage.includes("dont know") ||
+    normalizedMessage.includes("hard") ||
+    normalizedMessage.includes("give up")
+  ) {
+    return "No rush. We'll make it smaller together.";
+  }
+
+  if (
+    normalizedMessage.includes("hint") ||
+    normalizedMessage.includes("what do i do") ||
+    normalizedMessage.includes("help")
+  ) {
+    return "Good ask. I'm finding the next helpful clue.";
+  }
+
+  return `Nice thought. Let me connect it to ${topic}.`;
+}
+
 export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorChatProps) {
   const [draft, setDraft] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
   const [isWaitingForTutor, setIsWaitingForTutor] = useState(false);
+  const [bridgeReply, setBridgeReply] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [isSpeakingReply, setIsSpeakingReply] = useState(false);
   const [speechInputAvailable, setSpeechInputAvailable] = useState(false);
@@ -59,6 +100,7 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
     setIsSpeakingReply(false);
     setDraft("");
     setInterimTranscript("");
+    setBridgeReply("");
     setVoiceError("");
   }, [lesson.id]);
 
@@ -71,7 +113,7 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
 
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
-  }, [isWaitingForTutor, messages.length]);
+  }, [bridgeReply, isWaitingForTutor, messages.length]);
 
   async function sendMessage(message: string) {
     const cleanMessage = message.trim();
@@ -81,6 +123,8 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
     }
 
     setIsWaitingForTutor(true);
+    const fastReply = getFastBridgeReply(cleanMessage, lesson.topic);
+    setBridgeReply(fastReply);
     setDraft("");
 
     try {
@@ -95,6 +139,7 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
         });
       }
     } finally {
+      setBridgeReply("");
       setIsWaitingForTutor(false);
     }
   }
@@ -188,6 +233,12 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
             <p>{message.text}</p>
           </article>
         ))}
+        {bridgeReply ? (
+          <article className="tutor-chat__message is-tutor is-bridge" aria-label="Tutor quick reply">
+            <span>Tutor</span>
+            <p>{bridgeReply}</p>
+          </article>
+        ) : null}
         {isWaitingForTutor ? (
           <article className="tutor-chat__message is-tutor is-thinking" aria-label="Tutor is thinking">
             <span>Tutor</span>

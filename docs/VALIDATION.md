@@ -51,6 +51,7 @@ Expected results:
 - Browser TTS works when `speechSynthesis` is supported.
 - Tutor Chat can answer a typed question about the current lesson.
 - Tutor Chat should show the child's submitted message immediately, then show a brief tutor thinking state while GPT or fallback tutoring prepares the answer.
+- Tutor Chat should show an instant friendly bridge reply while the structured tutor/evaluation response is still loading.
 - Tutor Chat should show warm listening and thinking states instead of raw system-like status text.
 - Tutor Chat should answer greetings, "can you hear me", "can you see me", "are you AI", yes/no replies, frustration, what-to-do-next questions, and simple child check-ins naturally before redirecting back to lesson work.
 - Tutor Chat should not mistake normal lesson words such as "this" for greetings such as "hi".
