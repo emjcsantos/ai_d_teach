@@ -97,7 +97,7 @@ export function createSpeechListener({
   }
 
   const recognition = new SpeechRecognition();
-  recognition.continuous = false;
+  recognition.continuous = true;
   recognition.interimResults = true;
   recognition.lang = lang;
   recognition.maxAlternatives = 1;

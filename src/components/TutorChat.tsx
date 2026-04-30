@@ -8,6 +8,8 @@ import {
 import { canSpeak, speak, stopSpeaking, warmUpSpeechVoices } from "../lib/textToSpeech";
 import type { Lesson, LessonProgress, TutorTurn } from "../types/lesson";
 
+const VOICE_SUBMIT_SILENCE_MS = 1600;
+
 export type TutorChatProps = {
   lesson: Lesson;
   progress: LessonProgress;
@@ -67,7 +69,9 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
   const [voiceError, setVoiceError] = useState("");
   const logRef = useRef<HTMLDivElement | null>(null);
   const listenerRef = useRef<SpeechListener | null>(null);
+  const finalTranscriptRef = useRef("");
   const finalTranscriptHandledRef = useRef(false);
+  const voiceSubmitTimerRef = useRef<number | undefined>(undefined);
   const trimmedDraft = draft.trim();
   const showQuickPrompts = !trimmedDraft && !isListening && !isWaitingForTutor;
 
@@ -106,6 +110,7 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
 
   useEffect(() => {
     return () => {
+      clearVoiceSubmitTimer();
       listenerRef.current?.abort();
       stopSpeaking();
     };
@@ -144,6 +149,39 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
     }
   }
 
+  function clearVoiceSubmitTimer() {
+    if (voiceSubmitTimerRef.current) {
+      window.clearTimeout(voiceSubmitTimerRef.current);
+      voiceSubmitTimerRef.current = undefined;
+    }
+  }
+
+  function submitVoiceTranscriptNow() {
+    const transcript = finalTranscriptRef.current.trim();
+
+    clearVoiceSubmitTimer();
+
+    if (!transcript || finalTranscriptHandledRef.current) {
+      return;
+    }
+
+    finalTranscriptHandledRef.current = true;
+    finalTranscriptRef.current = "";
+    listenerRef.current?.stop();
+    listenerRef.current = null;
+    setIsListening(false);
+    setInterimTranscript("");
+    setDraft("");
+    void sendMessage(transcript);
+  }
+
+  function scheduleVoiceTranscriptSubmit() {
+    clearVoiceSubmitTimer();
+    voiceSubmitTimerRef.current = window.setTimeout(() => {
+      submitVoiceTranscriptNow();
+    }, VOICE_SUBMIT_SILENCE_MS);
+  }
+
   function startVoiceInput() {
     if (!speechInputAvailable) {
       setVoiceError("Speech input is unavailable in this browser. Type your question instead.");
@@ -155,13 +193,19 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
     setVoiceError("");
     setDraft("");
     setInterimTranscript("");
+    finalTranscriptRef.current = "";
     finalTranscriptHandledRef.current = false;
+    clearVoiceSubmitTimer();
 
     const listener = createSpeechListener({
       onEnd: () => {
         listenerRef.current = null;
         setIsListening(false);
-        setInterimTranscript("");
+        if (!finalTranscriptRef.current) {
+          setInterimTranscript("");
+        } else {
+          scheduleVoiceTranscriptSubmit();
+        }
       },
       onError: (message) => {
         listenerRef.current = null;
@@ -174,15 +218,14 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
           return;
         }
 
-        finalTranscriptHandledRef.current = true;
-        listenerRef.current?.stop();
-        listenerRef.current = null;
-        setIsListening(false);
-        setDraft("");
+        finalTranscriptRef.current = `${finalTranscriptRef.current} ${transcript}`.trim();
+        setDraft(finalTranscriptRef.current);
         setInterimTranscript("");
-        void sendMessage(transcript);
+        scheduleVoiceTranscriptSubmit();
       },
-      onInterimTranscript: setInterimTranscript,
+      onInterimTranscript: (transcript) => {
+        setInterimTranscript(transcript);
+      },
     });
 
     if (!listener) {
@@ -203,6 +246,12 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
   }
 
   function stopVoiceInput() {
+    if (finalTranscriptRef.current.trim()) {
+      submitVoiceTranscriptNow();
+      return;
+    }
+
+    clearVoiceSubmitTimer();
     listenerRef.current?.stop();
     listenerRef.current = null;
     setIsListening(false);

@@ -120,6 +120,7 @@ Voice validation should cover:
 - Browser Speech Recognition unavailable typed fallback.
 - Browser Speech Recognition `network`, permission, and no-speech errors show child-readable fallback guidance instead of raw browser error codes.
 - Push-to-talk starts only after a user action and stops after one utterance or explicit stop.
+- Voice input should wait for a short silence window before sending so it does not cut off a child mid-thought.
 - Stop or cancel behavior before starting a new utterance.
 - Visible narration text remaining available.
 - Optional spoken Tutor Chat replies.
