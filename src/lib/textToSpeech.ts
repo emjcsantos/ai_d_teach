@@ -15,6 +15,16 @@ const FRIENDLY_VOICE_HINTS = [
   "online",
 ];
 
+const SPEECH_REPLACEMENTS: Array<[RegExp, string]> = [
+  [/\b1\/4\b/g, "one fourth"],
+  [/\b2\/4\b/g, "two fourths"],
+  [/\b3\/4\b/g, "three fourths"],
+  [/\b4\/4\b/g, "four fourths"],
+  [/\b1\/2\b/g, "one half"],
+  [/=/g, " equals "],
+  [/\+/g, " plus "],
+];
+
 export function canSpeak() {
   return typeof window !== "undefined" && "speechSynthesis" in window;
 }
@@ -56,6 +66,42 @@ function getFriendlyVoice() {
   );
 }
 
+export function prepareSpeechText(text: string) {
+  return SPEECH_REPLACEMENTS.reduce(
+    (preparedText, [pattern, replacement]) => preparedText.replace(pattern, replacement),
+    text,
+  )
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function splitIntoSpeechChunks(text: string) {
+  const preparedText = prepareSpeechText(text);
+  const chunks = preparedText.match(/[^.!?]+[.!?]?/g)?.map((chunk) => chunk.trim()).filter(Boolean);
+
+  if (!chunks?.length) {
+    return preparedText ? [preparedText] : [];
+  }
+
+  return chunks;
+}
+
+function createUtterance(text: string, options: SpeakOptions) {
+  const utterance = new SpeechSynthesisUtterance(text);
+  const voice = getFriendlyVoice();
+
+  if (voice) {
+    utterance.voice = voice;
+    utterance.lang = voice.lang;
+  }
+
+  utterance.rate = clamp(options.rate, 0.8, 0.92);
+  utterance.pitch = 1.08;
+  utterance.volume = 0.9;
+
+  return utterance;
+}
+
 export function speak(text: string, options: SpeakOptions) {
   if (!canSpeak()) {
     options.onEnd?.();
@@ -63,16 +109,29 @@ export function speak(text: string, options: SpeakOptions) {
   }
 
   stopSpeaking();
-  const utterance = new SpeechSynthesisUtterance(text);
-  const voice = getFriendlyVoice();
-  if (voice) {
-    utterance.voice = voice;
-    utterance.lang = voice.lang;
+  const chunks = splitIntoSpeechChunks(text);
+
+  if (chunks.length === 0) {
+    options.onEnd?.();
+    return;
   }
-  utterance.rate = clamp(options.rate, 0.78, 0.94);
-  utterance.pitch = 1.16;
-  utterance.volume = 0.92;
-  utterance.onend = () => options.onEnd?.();
-  utterance.onerror = () => options.onEnd?.();
-  window.speechSynthesis.speak(utterance);
+
+  let finished = false;
+  const finish = () => {
+    if (!finished) {
+      finished = true;
+      options.onEnd?.();
+    }
+  };
+
+  chunks.forEach((chunk, index) => {
+    const utterance = createUtterance(chunk, options);
+
+    if (index === chunks.length - 1) {
+      utterance.onend = finish;
+    }
+
+    utterance.onerror = finish;
+    window.speechSynthesis.speak(utterance);
+  });
 }
