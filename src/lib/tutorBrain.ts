@@ -201,7 +201,7 @@ function looksLikeStudentAnswer(text: string) {
 function buildConversationalTurn(message: string, lesson: Lesson): TutorTurn | undefined {
   if (includesAnyPhrase(message, ["can you hear me", "can u hear me", "do you hear me", "are you listening"])) {
     return makeTurn({
-      reply: `I can see your words here. If you press Talk and allow the microphone, I can listen too. I'm right here with you.`,
+      reply: `I can see your words. When the microphone is on, I can listen too. I'm right here with you.`,
       mode: "encourage",
       understanding: "not_checked",
       nextAction: "answer",
@@ -211,7 +211,17 @@ function buildConversationalTurn(message: string, lesson: Lesson): TutorTurn | u
 
   if (includesAnyPhrase(message, ["can you talk", "can you speak", "will you talk", "talk to me"])) {
     return makeTurn({
-      reply: `Yes. I can talk back when your browser allows voice. You can also type, and I will still stay with you.`,
+      reply: `Yes. I can talk back when voice is allowed. You can type too, and I'll still answer you.`,
+      mode: "encourage",
+      understanding: "not_checked",
+      nextAction: "answer",
+      canContinue: false,
+    });
+  }
+
+  if (includesAnyPhrase(message, ["can you see me", "do you see me", "are you watching me"])) {
+    return makeTurn({
+      reply: `I can't see you, but I can read what you type here. Tell me what you see on the lesson screen.`,
       mode: "encourage",
       understanding: "not_checked",
       nextAction: "answer",
@@ -229,9 +239,29 @@ function buildConversationalTurn(message: string, lesson: Lesson): TutorTurn | u
     });
   }
 
+  if (includesAnyPhrase(message, ["are you real", "are you a robot", "are you ai"])) {
+    return makeTurn({
+      reply: `I'm an AI tutor, like a helper inside the lesson. You do the thinking, and I help when you need a clue.`,
+      mode: "encourage",
+      understanding: "not_checked",
+      nextAction: "answer",
+      canContinue: false,
+    });
+  }
+
   if (includesAnyPhrase(message, ["who are you", "what are you", "your name"])) {
     return makeTurn({
       reply: `I'm your AI tutor. I can talk with you, give hints, and help you figure things out without rushing.`,
+      mode: "encourage",
+      understanding: "not_checked",
+      nextAction: "answer",
+      canContinue: false,
+    });
+  }
+
+  if (includesAnyPhrase(message, ["my name is", "call me"])) {
+    return makeTurn({
+      reply: `Nice to meet you. I'm glad you're learning with me today. Ready to try one tiny step?`,
       mode: "encourage",
       understanding: "not_checked",
       nextAction: "answer",
@@ -249,10 +279,30 @@ function buildConversationalTurn(message: string, lesson: Lesson): TutorTurn | u
     });
   }
 
+  if (includesAnyPhrase(message, ["i got it", "i get it", "i understand", "easy"])) {
+    return makeTurn({
+      reply: `Great. Show me your thinking in one sentence, and then we can keep going.`,
+      mode: "check",
+      understanding: "emerging",
+      nextAction: "answer",
+      canContinue: false,
+    });
+  }
+
   if (includesAnyPhrase(message, ["i don't know", "i dont know", "not sure", "i'm lost", "i am lost"])) {
     return makeTurn({
       reply: `That's a good time to ask. Look at the biggest picture on the canvas and tell me one thing you see. I'll help from there.`,
       mode: "hint",
+      understanding: "emerging",
+      nextAction: "try_canvas",
+      canContinue: false,
+    });
+  }
+
+  if (includesAnyPhrase(message, ["i hate this", "i quit", "i give up", "i don't like this", "i dont like this"])) {
+    return makeTurn({
+      reply: `Oof, that feels frustrating. Let's make it smaller: tell me just one thing you see, and I'll help with the next bit.`,
+      mode: "encourage",
       understanding: "emerging",
       nextAction: "try_canvas",
       canContinue: false,
