@@ -37,7 +37,7 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
             {
               id: "starter-tutor-message",
               role: "tutor" as const,
-              text: `Stay with the lesson and ask me anything about ${lesson.topic}. I will explain, hint, or ask you back like a tutor.`,
+              text: `Hi, I'm here with you. Talk to me while we learn ${lesson.topic}, and I'll help one small step at a time.`,
               createdAt: new Date().toISOString(),
             },
           ],
@@ -168,7 +168,7 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
       <header className="tutor-chat__header">
         <div>
           <h2 id="tutor-chat-title">AI Tutor</h2>
-          <p>Talk or type while you study. Tutor replies are spoken when supported.</p>
+          <p>Talk to me while you learn. I can answer, cheer you on, and help when you get stuck.</p>
         </div>
         <Bot size={22} aria-hidden="true" />
       </header>
@@ -207,7 +207,7 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
           <textarea
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder={isListening ? "Listening..." : "Ask: why does this work?"}
+            placeholder={isListening ? "I'm listening..." : "Say hi, ask for help, or tell me what you notice."}
             disabled={isWaitingForTutor}
             rows={3}
           />

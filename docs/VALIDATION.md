@@ -51,7 +51,8 @@ Expected results:
 - Browser TTS works when `speechSynthesis` is supported.
 - Tutor Chat can answer a typed question about the current lesson.
 - Tutor Chat should show the child's submitted message immediately, then show a brief tutor thinking state while GPT or fallback tutoring prepares the answer.
-- Tutor Chat should answer greetings, "can you hear me", and simple child check-ins naturally before redirecting back to lesson work.
+- Tutor Chat should answer greetings, "can you hear me", yes/no replies, what-to-do-next questions, and simple child check-ins naturally before redirecting back to lesson work.
+- Tutor Chat should not mistake normal lesson words such as "this" for greetings such as "hi".
 - Tutor Chat falls back to the local tutor when `/api/tutor` is unavailable or OpenAI is not configured.
 - Quiz flow records attempts and explanations.
 - Feedback Lab can save teacher, student, and improvement notes.

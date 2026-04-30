@@ -12,6 +12,22 @@ function includesAny(text: string, words: string[]) {
   return words.some((word) => text.includes(word));
 }
 
+function escapeRegExp(text: string) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function includesAnyPhrase(text: string, phrases: string[]) {
+  return phrases.some((phrase) => {
+    const normalizedPhrase = normalizeText(phrase);
+
+    if (!normalizedPhrase) {
+      return false;
+    }
+
+    return new RegExp(`(^|\\W)${escapeRegExp(normalizedPhrase)}($|\\W)`).test(text);
+  });
+}
+
 function normalizeText(text: string) {
   return text.trim().toLowerCase();
 }
@@ -183,7 +199,7 @@ function looksLikeStudentAnswer(text: string) {
 }
 
 function buildConversationalTurn(message: string, lesson: Lesson): TutorTurn | undefined {
-  if (includesAny(message, ["can you hear me", "can u hear me", "do you hear me", "are you listening"])) {
+  if (includesAnyPhrase(message, ["can you hear me", "can u hear me", "do you hear me", "are you listening"])) {
     return makeTurn({
       reply: `I can see your words here. If you press Talk and allow the microphone, I can listen too. I'm right here with you.`,
       mode: "encourage",
@@ -193,7 +209,17 @@ function buildConversationalTurn(message: string, lesson: Lesson): TutorTurn | u
     });
   }
 
-  if (includesAny(message, ["hello", "hi", "hey", "good morning", "good afternoon", "good evening"])) {
+  if (includesAnyPhrase(message, ["can you talk", "can you speak", "will you talk", "talk to me"])) {
+    return makeTurn({
+      reply: `Yes. I can talk back when your browser allows voice. You can also type, and I will still stay with you.`,
+      mode: "encourage",
+      understanding: "not_checked",
+      nextAction: "answer",
+      canContinue: false,
+    });
+  }
+
+  if (includesAnyPhrase(message, ["hello", "hi", "hey", "good morning", "good afternoon", "good evening"])) {
     return makeTurn({
       reply: `Hi! I'm happy you're here. We can talk, and I'll help you with ${lesson.topic} one small step at a time.`,
       mode: "encourage",
@@ -203,7 +229,7 @@ function buildConversationalTurn(message: string, lesson: Lesson): TutorTurn | u
     });
   }
 
-  if (includesAny(message, ["who are you", "what are you", "your name"])) {
+  if (includesAnyPhrase(message, ["who are you", "what are you", "your name"])) {
     return makeTurn({
       reply: `I'm your AI tutor. I can talk with you, give hints, and help you figure things out without rushing.`,
       mode: "encourage",
@@ -213,7 +239,7 @@ function buildConversationalTurn(message: string, lesson: Lesson): TutorTurn | u
     });
   }
 
-  if (includesAny(message, ["thank you", "thanks", "thank u"])) {
+  if (includesAnyPhrase(message, ["thank you", "thanks", "thank u"])) {
     return makeTurn({
       reply: `You're welcome. Nice learning energy. Tell me what you want to try next.`,
       mode: "encourage",
@@ -223,11 +249,31 @@ function buildConversationalTurn(message: string, lesson: Lesson): TutorTurn | u
     });
   }
 
-  if (includesAny(message, ["i'm scared", "i am scared", "i'm nervous", "i am nervous", "too hard"])) {
+  if (includesAnyPhrase(message, ["i don't know", "i dont know", "not sure", "i'm lost", "i am lost"])) {
+    return makeTurn({
+      reply: `That's a good time to ask. Look at the biggest picture on the canvas and tell me one thing you see. I'll help from there.`,
+      mode: "hint",
+      understanding: "emerging",
+      nextAction: "try_canvas",
+      canContinue: false,
+    });
+  }
+
+  if (includesAnyPhrase(message, ["i'm scared", "i am scared", "i'm nervous", "i am nervous", "too hard"])) {
     return makeTurn({
       reply: `That's okay. We can go slowly. Try one tiny step, and I'll help you if it feels tricky.`,
       mode: "encourage",
       understanding: "emerging",
+      nextAction: "answer",
+      canContinue: false,
+    });
+  }
+
+  if (includesAnyPhrase(message, ["yes", "yeah", "yep", "ok", "okay", "no", "nope"])) {
+    return makeTurn({
+      reply: `Got it. Tell me one more thing: what do you notice on the canvas right now?`,
+      mode: "check",
+      understanding: "not_checked",
       nextAction: "answer",
       canContinue: false,
     });
@@ -376,7 +422,7 @@ export function buildTutorTurn({ lesson, currentStep, message, progress }: Tutor
     });
   }
 
-  if (includesAny(normalizedMessage, ["do now", "what should i do"])) {
+  if (includesAnyPhrase(normalizedMessage, ["do now", "what should i do", "what do i do", "what now"])) {
     return makeTurn({
       reply: `Focus on this step: ${currentStep.title}. ${makePracticePrompt(
         currentStep,
