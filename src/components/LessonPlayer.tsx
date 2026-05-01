@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Play, Sparkles, Square } from "lucide-react";
-import { canSpeak, speak, stopSpeaking, warmUpSpeechVoices } from "../lib/textToSpeech";
+import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import type { Lesson, LessonProgress, TutorSignal, TutorTurn } from "../types/lesson";
 import { LessonCanvas, type CanvasActivityAttempt, type CanvasPracticeState } from "./LessonCanvas";
 import { TutorChat } from "./TutorChat";
@@ -125,8 +124,6 @@ export function LessonPlayer({
   onActivityAttempt,
   voiceRate,
 }: LessonPlayerProps) {
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [speechAvailable, setSpeechAvailable] = useState(false);
   const [practiceByStep, setPracticeByStep] = useState<Record<string, CanvasPracticeState>>({});
   const stepCount = lesson.steps.length;
   const safeStepIndex = getSafeStepIndex(stepCount, currentStepIndex);
@@ -137,59 +134,15 @@ export function LessonPlayer({
   const progressPercent = stepCount > 0 ? Math.round(((safeStepIndex + 1) / stepCount) * 100) : 0;
 
   useEffect(() => {
-    setSpeechAvailable(canSpeak());
-    warmUpSpeechVoices();
-  }, []);
-
-  useEffect(() => {
-    stopSpeaking();
-    setIsSpeaking(false);
-  }, [currentStep?.id]);
-
-  useEffect(() => {
     setPracticeByStep({});
   }, [lesson.id]);
-
-  useEffect(() => {
-    return () => {
-      stopSpeaking();
-    };
-  }, []);
 
   function moveToStep(index: number) {
     if (stepCount === 0) {
       return;
     }
 
-    stopSpeaking();
-    setIsSpeaking(false);
     onStepChange(getSafeStepIndex(stepCount, index));
-  }
-
-  function playNarration() {
-    if (!currentStep) {
-      return;
-    }
-
-    setIsSpeaking(true);
-    speak(currentStep.narration, {
-      rate,
-      onEnd: () => setIsSpeaking(false),
-    });
-  }
-
-  function stopNarration() {
-    stopSpeaking();
-    setIsSpeaking(false);
-  }
-
-  function toggleNarration() {
-    if (isSpeaking) {
-      stopNarration();
-      return;
-    }
-
-    playNarration();
   }
 
   const handlePracticeStateChange = useCallback(
@@ -290,16 +243,6 @@ export function LessonPlayer({
               <h2 id="coach-title">Tutor says</h2>
               <p>{currentStep.narration}</p>
             </div>
-            <button
-              type="button"
-              onClick={toggleNarration}
-              disabled={!speechAvailable}
-              className="coach-button coach-button--primary"
-              title={speechAvailable ? "Read this step aloud" : "Browser speech is unavailable"}
-            >
-              {isSpeaking ? <Square size={18} aria-hidden="true" /> : <Play size={18} aria-hidden="true" />}
-              <span>{isSpeaking ? "Stop voice" : "Read aloud"}</span>
-            </button>
           </section>
 
           {currentStep.prompt ? (

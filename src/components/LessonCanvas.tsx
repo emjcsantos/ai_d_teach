@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { Play, Square } from "lucide-react";
-import { canSpeak, speak, stopSpeaking, warmUpSpeechVoices } from "../lib/textToSpeech";
 import type { LessonActivityTask, LessonStep, LessonVisual } from "../types/lesson";
 
 export type CanvasPracticeState = {
@@ -108,45 +106,11 @@ function InstructorTaskCard({
   current,
   instruction,
   total,
-  voiceRate,
 }: {
   current: number;
   instruction: string;
   total: number;
-  voiceRate: number;
 }) {
-  const [speechAvailable, setSpeechAvailable] = useState(false);
-  const [isReadingInstruction, setIsReadingInstruction] = useState(false);
-
-  useEffect(() => {
-    setSpeechAvailable(canSpeak());
-    warmUpSpeechVoices();
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      stopSpeaking();
-    };
-  }, []);
-
-  useEffect(() => {
-    setIsReadingInstruction(false);
-  }, [instruction]);
-
-  function toggleInstructionVoice() {
-    if (isReadingInstruction) {
-      stopSpeaking();
-      setIsReadingInstruction(false);
-      return;
-    }
-
-    setIsReadingInstruction(true);
-    speak(instruction, {
-      rate: voiceRate,
-      onEnd: () => setIsReadingInstruction(false),
-    });
-  }
-
   return (
     <section className="instructor-card" aria-live="polite">
       <div>
@@ -154,16 +118,6 @@ function InstructorTaskCard({
         <strong>{instruction}</strong>
       </div>
       <div className="instructor-card__controls">
-        <button
-          type="button"
-          className="instructor-voice"
-          disabled={!speechAvailable}
-          onClick={toggleInstructionVoice}
-          title={speechAvailable ? "Read teacher task aloud" : "Browser speech is unavailable"}
-        >
-          {isReadingInstruction ? <Square size={16} aria-hidden="true" /> : <Play size={16} aria-hidden="true" />}
-          <span>{isReadingInstruction ? "Stop" : "Read"}</span>
-        </button>
         <div className="instructor-progress" aria-label={`Scenario ${current + 1} of ${total}`}>
           {Array.from({ length: total }, (_, index) => (
             <span
@@ -262,7 +216,6 @@ function FractionPizza({
         current={safeScenarioIndex}
         instruction={scenario.instruction}
         total={scenarios.length}
-        voiceRate={voiceRate}
       />
 
       <div className="fraction-workbench">
@@ -417,7 +370,6 @@ function WordCards({
           current={safeTaskIndex}
           instruction={task.instruction}
           total={tasks.length}
-          voiceRate={voiceRate}
         />
       ) : null}
       <div className="word-card-grid" aria-label="Vocabulary cards">
@@ -529,7 +481,6 @@ function ScienceCycle({
           current={safeTaskIndex}
           instruction={task.instruction}
           total={tasks.length}
-          voiceRate={voiceRate}
         />
       ) : null}
       <div className="science-cycle" aria-label={`${visual.title} cycle`}>
@@ -656,7 +607,6 @@ function FormulaBoard({
           current={safeTaskIndex}
           instruction={task.instruction}
           total={tasks.length}
-          voiceRate={voiceRate}
         />
       ) : null}
       <div className="formula-workbench">

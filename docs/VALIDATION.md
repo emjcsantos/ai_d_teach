@@ -113,7 +113,7 @@ Voice validation should cover:
 
 - Browser TTS available path.
 - Browser TTS unavailable fallback.
-- Teacher-task instructions stay visible and can be spoken with explicit Read and Stop controls.
+- Teacher-task instructions stay visible without requiring manual Read controls.
 - Browser TTS should prefer a friendly English voice when available, with a slower child-friendly rate and softer volume.
 - Browser TTS should read common lesson symbols in child-friendly words, such as `1/4` as "one fourth" and `=` as "equals".
 - Browser Speech Recognition available path.
@@ -121,7 +121,7 @@ Voice validation should cover:
 - Browser Speech Recognition `network`, permission, and no-speech errors show child-readable fallback guidance instead of raw browser error codes.
 - Push-to-talk starts only after a user action and stops after one utterance or explicit stop.
 - Voice input should wait for a short silence window before sending so it does not cut off a child mid-thought.
-- Stop or cancel behavior before starting a new utterance.
+- Stop or cancel behavior before starting a new tutor utterance.
 - Visible narration text remaining available.
 - Optional spoken Tutor Chat replies.
 - Reasonable speaking rate controls when UI controls exist.

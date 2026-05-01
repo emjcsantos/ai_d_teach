@@ -309,7 +309,6 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             placeholder={isListening ? "I'm listening..." : "Say hi, ask for help, or tell me what you notice"}
-            disabled={isWaitingForTutor}
             rows={3}
           />
         </label>
