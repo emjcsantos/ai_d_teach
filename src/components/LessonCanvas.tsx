@@ -1,62 +1,28 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import type { LessonStep, LessonVisual } from "../types/lesson";
+import type { LessonActivityTask, LessonStep, LessonVisual } from "../types/lesson";
+
+export type CanvasPracticeState = {
+  complete: boolean;
+  active: boolean;
+  prompt: string;
+};
+
+export type CanvasActivityAttempt = {
+  stepId: string;
+  taskId: string;
+  taskKind: LessonActivityTask["kind"];
+  response: string;
+  correct: boolean;
+};
 
 export type LessonCanvasProps = {
   step: LessonStep;
+  onPracticeStateChange?: (state: CanvasPracticeState) => void;
+  onActivityAttempt?: (attempt: CanvasActivityAttempt) => void;
+  voiceRate: number;
 };
 
-const canvasStyles = {
-  shell: {
-    border: "1px solid #d5d9e2",
-    borderRadius: 8,
-    background: "#ffffff",
-    color: "#182230",
-    padding: 20,
-    minHeight: 360,
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
-    boxShadow: "0 10px 30px rgba(16, 24, 40, 0.08)",
-  },
-  header: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 4,
-  },
-  eyebrow: {
-    color: "#526070",
-    fontSize: 13,
-    fontWeight: 700,
-    letterSpacing: 0,
-    textTransform: "uppercase",
-  },
-  title: {
-    fontSize: 24,
-    lineHeight: 1.2,
-    margin: 0,
-  },
-  visualArea: {
-    flex: 1,
-    display: "grid",
-    placeItems: "center",
-    minHeight: 250,
-  },
-  button: {
-    border: "1px solid #c9d1df",
-    borderRadius: 8,
-    background: "#ffffff",
-    color: "#182230",
-    cursor: "pointer",
-    font: "inherit",
-  },
-  selectedButton: {
-    borderColor: "#1f6feb",
-    background: "#e9f2ff",
-    color: "#0f3e8a",
-  },
-} satisfies Record<string, CSSProperties>;
-
-const palette = ["#1f6feb", "#0e9384", "#db8b00", "#c11574", "#6941c6", "#0086c9"];
+const tokenPalette = ["#1c8a8a", "#e7664c", "#6e6fbf", "#5e9f58", "#b76b1d", "#2e6fba"];
 
 function clampInteger(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, Math.floor(Number.isFinite(value) ? value : min)));
@@ -83,18 +49,144 @@ function getFractionPath(index: number, total: number) {
   return `M ${center} ${center} L ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY} Z`;
 }
 
-function FractionPizza({ visual }: { visual: Extract<LessonVisual, { kind: "fraction_pizza" }> }) {
+type FractionScenario = {
+  id: string;
+  instruction: string;
+  success: string;
+  hint?: string;
+  target: number;
+};
+
+function buildFractionScenarios(
+  parts: number,
+  highlightedCount: number,
+  practiceTargets?: number[],
+  teacherTasks?: Extract<LessonActivityTask, { kind: "select_fraction_count" }>[],
+) {
+  if (teacherTasks?.length) {
+    return teacherTasks.map<FractionScenario>((task) => ({
+      id: task.id,
+      instruction: task.instruction,
+      success: task.success,
+      hint: task.hint,
+      target: task.targetCount,
+    }));
+  }
+
+  const validTargets = (practiceTargets?.length ? practiceTargets : [highlightedCount]).filter(
+    (target, index, values) => target >= 1 && target <= parts && values.indexOf(target) === index,
+  );
+  const targets = validTargets.length ? validTargets : [clampInteger(highlightedCount, 1, parts)];
+
+  return targets.map<FractionScenario>((target) => {
+    const label = `${target}/${parts}`;
+    const instruction =
+      target === parts
+        ? `Click the whole pizza: ${label}.`
+        : `Click ${label} of the pizza.`;
+    const success =
+      target === parts
+        ? "Great. The whole pizza is selected."
+        : `Yes. ${label} means ${target} out of ${parts} equal parts.`;
+
+    return { id: `fraction-${target}-${parts}`, instruction, success, target };
+  });
+}
+
+function getTasksForKind<TKind extends LessonActivityTask["kind"]>(
+  step: LessonStep,
+  kind: TKind,
+) {
+  return (step.teacherTasks ?? []).filter(
+    (task): task is Extract<LessonActivityTask, { kind: TKind }> => task.kind === kind,
+  );
+}
+
+function InstructorTaskCard({
+  current,
+  instruction,
+  total,
+}: {
+  current: number;
+  instruction: string;
+  total: number;
+}) {
+  return (
+    <section className="instructor-card" aria-live="polite">
+      <div>
+        <span>Teacher task</span>
+        <strong>{instruction}</strong>
+      </div>
+      <div className="instructor-card__controls">
+        <div className="instructor-progress" aria-label={`Scenario ${current + 1} of ${total}`}>
+          {Array.from({ length: total }, (_, index) => (
+            <span
+              key={index}
+              className={[
+                "instructor-progress__dot",
+                index < current ? "is-done" : "",
+                index === current ? "is-current" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FractionPizza({
+  visual,
+  tasks,
+  onPracticeStateChange,
+  onActivityAttempt,
+  voiceRate,
+}: {
+  visual: Extract<LessonVisual, { kind: "fraction_pizza" }>;
+  tasks: Extract<LessonActivityTask, { kind: "select_fraction_count" }>[];
+  onPracticeStateChange?: (state: CanvasPracticeState) => void;
+  onActivityAttempt?: (attempt: Omit<CanvasActivityAttempt, "stepId">) => void;
+  voiceRate: number;
+}) {
   const parts = clampInteger(visual.parts, 1, 16);
   const highlightedCount = clampInteger(visual.highlight, 0, parts);
-  const initialSelection = useMemo(
-    () => new Set(Array.from({ length: highlightedCount }, (_, index) => index)),
-    [highlightedCount],
+  const scenarios = useMemo(
+    () => buildFractionScenarios(parts, Math.max(1, highlightedCount), visual.practiceTargets, tasks),
+    [highlightedCount, parts, tasks, visual.practiceTargets],
   );
-  const [selectedSlices, setSelectedSlices] = useState<Set<number>>(initialSelection);
+  const [scenarioIndex, setScenarioIndex] = useState(0);
+  const [selectedSlices, setSelectedSlices] = useState<Set<number>>(() => new Set());
+  const safeScenarioIndex = clampInteger(scenarioIndex, 0, scenarios.length - 1);
+  const scenario = scenarios[safeScenarioIndex];
+  const selectedCount = selectedSlices.size;
+  const matchesTarget = selectedCount === scenario.target;
+  const isLastScenario = safeScenarioIndex === scenarios.length - 1;
+  const practiceComplete = matchesTarget && isLastScenario;
+  const targetLabel = `${scenario.target}/${parts}`;
 
   useEffect(() => {
-    setSelectedSlices(initialSelection);
-  }, [initialSelection]);
+    setScenarioIndex(0);
+    setSelectedSlices(new Set());
+  }, [parts, highlightedCount, visual.practiceTargets]);
+
+  useEffect(() => {
+    onPracticeStateChange?.({
+      active: true,
+      complete: practiceComplete,
+      prompt: scenario.instruction,
+    });
+  }, [onPracticeStateChange, practiceComplete, scenario.instruction]);
+
+  function reportFractionAttempt(nextSelectedCount: number) {
+    onActivityAttempt?.({
+      taskId: scenario.id,
+      taskKind: "select_fraction_count",
+      response: `${nextSelectedCount}/${parts}`,
+      correct: nextSelectedCount === scenario.target,
+    });
+  }
 
   function toggleSlice(index: number) {
     setSelectedSlices((current) => {
@@ -104,108 +196,183 @@ function FractionPizza({ visual }: { visual: Extract<LessonVisual, { kind: "frac
       } else {
         next.add(index);
       }
+      reportFractionAttempt(next.size);
       return next;
     });
   }
 
-  const selectedCount = selectedSlices.size;
+  function moveToNextScenario() {
+    if (!matchesTarget || isLastScenario) {
+      return;
+    }
+
+    setScenarioIndex((current) => clampInteger(current + 1, 0, scenarios.length - 1));
+    setSelectedSlices(new Set());
+  }
 
   return (
-    <div style={fractionStyles.layout}>
-      <svg
-        role="img"
-        aria-label={`${visual.label} pizza fraction model`}
-        viewBox="0 0 200 200"
-        style={fractionStyles.svg}
-      >
-        <circle cx="100" cy="100" r="90" fill="#f7c66b" />
-        <circle cx="100" cy="100" r="78" fill="none" stroke="#b86b24" strokeWidth="2" />
-        {Array.from({ length: parts }, (_, index) => {
-          const isSelected = selectedSlices.has(index);
-          return (
-            <path
-              key={index}
-              d={getFractionPath(index, parts)}
-              fill={isSelected ? "#ef6820" : "#ffd98a"}
-              stroke="#8f4f16"
-              strokeWidth={isSelected ? 3 : 1.5}
-              tabIndex={0}
-              role="button"
-              aria-pressed={isSelected}
-              aria-label={`Slice ${index + 1} of ${parts}`}
-              onClick={() => toggleSlice(index)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  toggleSlice(index);
-                }
-              }}
-              style={{ cursor: "pointer", outline: "none" }}
-            />
-          );
-        })}
-        <circle cx="100" cy="100" r="34" fill="#fff9e8" stroke="#8f4f16" strokeWidth="2" />
-        <text
-          x="100"
-          y="106"
-          textAnchor="middle"
-          fill="#682d08"
-          fontSize="22"
-          fontWeight="700"
+    <div className="canvas-visual canvas-visual--fraction">
+      <InstructorTaskCard
+        current={safeScenarioIndex}
+        instruction={scenario.instruction}
+        total={scenarios.length}
+      />
+
+      <div className="fraction-workbench">
+        <svg
+          role="img"
+          aria-label={`${targetLabel} pizza fraction model`}
+          viewBox="0 0 200 200"
+          className="fraction-pizza-svg"
         >
-          {visual.label}
-        </text>
-      </svg>
-      <div style={fractionStyles.panel}>
-        <strong>
-          {selectedCount}/{parts} selected
-        </strong>
-        <span>{selectedCount === highlightedCount ? "Matches the lesson highlight." : "Tap slices to compare fractions."}</span>
+          <circle cx="100" cy="100" r="92" className="fraction-crust" />
+          <circle cx="100" cy="100" r="78" className="fraction-guide" />
+          {Array.from({ length: parts }, (_, index) => {
+            const isSelected = selectedSlices.has(index);
+            return (
+              <path
+                key={index}
+                d={getFractionPath(index, parts)}
+                className={isSelected ? "fraction-slice is-selected" : "fraction-slice"}
+                tabIndex={0}
+                role="button"
+                aria-pressed={isSelected}
+                aria-label={`Slice ${index + 1} of ${parts}`}
+                onClick={() => toggleSlice(index)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    toggleSlice(index);
+                  }
+                }}
+              />
+            );
+          })}
+          <circle cx="100" cy="100" r="35" className="fraction-center" />
+          <text x="100" y="107" textAnchor="middle" className="fraction-label">
+            {targetLabel}
+          </text>
+        </svg>
+
+        <div className="fraction-meter" aria-label={`${selectedCount} of ${parts} slices selected`}>
+          {Array.from({ length: parts }, (_, index) => (
+            <button
+              key={index}
+              type="button"
+              aria-label={`Toggle fraction bar part ${index + 1}`}
+              aria-pressed={selectedSlices.has(index)}
+              className={
+                selectedSlices.has(index)
+                  ? "fraction-meter__part is-selected"
+                  : "fraction-meter__part"
+              }
+              onClick={() => toggleSlice(index)}
+            />
+          ))}
+        </div>
       </div>
+
+      <aside className={matchesTarget ? "canvas-callout is-success" : "canvas-callout"}>
+        <span className="canvas-callout__label">Fraction target</span>
+        <strong>
+          {selectedCount}/{parts}
+        </strong>
+        <p>
+          {matchesTarget
+            ? scenario.success
+            : selectedCount < scenario.target
+              ? scenario.hint ??
+                `Keep going. Select ${scenario.target - selectedCount} more part${
+                  scenario.target - selectedCount === 1 ? "" : "s"
+                }.`
+              : `Too many parts. Unclick ${selectedCount - scenario.target} part${
+                  selectedCount - scenario.target === 1 ? "" : "s"
+                }.`}
+        </p>
+        {matchesTarget && !isLastScenario ? (
+          <button type="button" className="canvas-callout__action" onClick={moveToNextScenario}>
+            Next challenge
+          </button>
+        ) : null}
+        {practiceComplete ? <p className="canvas-callout__complete">All fraction challenges complete.</p> : null}
+      </aside>
     </div>
   );
 }
 
-const fractionStyles = {
-  layout: {
-    width: "100%",
-    display: "grid",
-    gridTemplateColumns: "minmax(180px, 260px) minmax(160px, 1fr)",
-    alignItems: "center",
-    gap: 20,
-  },
-  svg: {
-    width: "100%",
-    maxWidth: 260,
-    aspectRatio: "1 / 1",
-  },
-  panel: {
-    borderLeft: "4px solid #ef6820",
-    padding: "12px 0 12px 16px",
-    display: "flex",
-    flexDirection: "column",
-    gap: 6,
-    color: "#344054",
-  },
-} satisfies Record<string, CSSProperties>;
-
-function WordCards({ visual }: { visual: Extract<LessonVisual, { kind: "word_cards" }> }) {
+function WordCards({
+  visual,
+  tasks,
+  onPracticeStateChange,
+  onActivityAttempt,
+  voiceRate,
+}: {
+  visual: Extract<LessonVisual, { kind: "word_cards" }>;
+  tasks: Extract<LessonActivityTask, { kind: "tap_word_card" }>[];
+  onPracticeStateChange?: (state: CanvasPracticeState) => void;
+  onActivityAttempt?: (attempt: Omit<CanvasActivityAttempt, "stepId">) => void;
+  voiceRate: number;
+}) {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [taskIndex, setTaskIndex] = useState(0);
+  const safeTaskIndex = clampInteger(taskIndex, 0, Math.max(0, tasks.length - 1));
+  const task = tasks[safeTaskIndex];
+  const taskSignature = tasks.map((item) => item.id).join("|");
 
   useEffect(() => {
     setSelectedIndex(0);
-  }, [visual.words]);
+    setTaskIndex(0);
+  }, [taskSignature, visual.words]);
 
   if (visual.words.length === 0) {
-    return <p style={emptyStyles.message}>No vocabulary cards for this step yet.</p>;
+    return <p className="canvas-empty">No vocabulary cards for this step yet.</p>;
   }
 
   const safeSelectedIndex = clampInteger(selectedIndex, 0, visual.words.length - 1);
   const selectedWord = visual.words[safeSelectedIndex];
+  const selectedMatchesTask =
+    Boolean(task) && selectedWord.term.trim().toLowerCase() === task.target.trim().toLowerCase();
+  const isLastTask = safeTaskIndex === tasks.length - 1;
+  const practiceComplete = Boolean(task) && selectedMatchesTask && isLastTask;
+
+  useEffect(() => {
+    onPracticeStateChange?.({
+      active: tasks.length > 0,
+      complete: practiceComplete,
+      prompt: task?.instruction ?? "",
+    });
+  }, [onPracticeStateChange, practiceComplete, task?.instruction, tasks.length]);
+
+  function chooseWord(index: number) {
+    const word = visual.words[index];
+    const correct = Boolean(task) && word.term.trim().toLowerCase() === task.target.trim().toLowerCase();
+    setSelectedIndex(index);
+    if (task) {
+      onActivityAttempt?.({
+        taskId: task.id,
+        taskKind: "tap_word_card",
+        response: word.term,
+        correct,
+      });
+    }
+  }
+
+  function moveToNextTask() {
+    if (selectedMatchesTask && !isLastTask) {
+      setTaskIndex((current) => clampInteger(current + 1, 0, tasks.length - 1));
+    }
+  }
 
   return (
-    <div style={wordCardStyles.layout}>
-      <div style={wordCardStyles.cards} aria-label="Vocabulary cards">
+    <div className="canvas-visual canvas-visual--words">
+      {task ? (
+        <InstructorTaskCard
+          current={safeTaskIndex}
+          instruction={task.instruction}
+          total={tasks.length}
+        />
+      ) : null}
+      <div className="word-card-grid" aria-label="Vocabulary cards">
         {visual.words.map((word, index) => {
           const selected = safeSelectedIndex === index;
           return (
@@ -213,113 +380,115 @@ function WordCards({ visual }: { visual: Extract<LessonVisual, { kind: "word_car
               key={`${word.term}-${index}`}
               type="button"
               aria-pressed={selected}
-              onClick={() => setSelectedIndex(index)}
-              style={{
-                ...canvasStyles.button,
-                ...(selected ? canvasStyles.selectedButton : {}),
-                ...wordCardStyles.card,
-              }}
+              className={selected ? "study-word-card is-selected" : "study-word-card"}
+              onClick={() => chooseWord(index)}
             >
-              <span style={wordCardStyles.term}>{word.term}</span>
-              <span style={wordCardStyles.cardHint}>Card {index + 1}</span>
+              <span className="study-word-card__term">{word.term}</span>
+              <span className="study-word-card__hint">Reveal meaning</span>
             </button>
           );
         })}
       </div>
-      <div style={wordCardStyles.definition} aria-live="polite">
-        <span style={wordCardStyles.definitionLabel}>Meaning</span>
-        <strong style={wordCardStyles.definitionTerm}>{selectedWord.term}</strong>
-        <p style={wordCardStyles.definitionText}>{selectedWord.meaning}</p>
-      </div>
+
+      <aside className="word-meaning-card" aria-live="polite">
+        <span>Meaning</span>
+        <strong>{selectedWord.term}</strong>
+        <p>
+          {task
+            ? selectedMatchesTask
+              ? task.success
+              : task.hint ?? selectedWord.meaning
+            : selectedWord.meaning}
+        </p>
+        {task && selectedMatchesTask && !isLastTask ? (
+          <button type="button" className="canvas-callout__action" onClick={moveToNextTask}>
+            Next task
+          </button>
+        ) : null}
+      </aside>
     </div>
   );
 }
 
-const wordCardStyles = {
-  layout: {
-    width: "100%",
-    display: "grid",
-    gridTemplateColumns: "minmax(180px, 1fr) minmax(220px, 1.15fr)",
-    gap: 18,
-    alignItems: "stretch",
-  },
-  cards: {
-    display: "grid",
-    gap: 10,
-  },
-  card: {
-    minHeight: 82,
-    padding: 14,
-    textAlign: "left",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "space-between",
-    gap: 8,
-  },
-  term: {
-    fontSize: 20,
-    fontWeight: 800,
-    lineHeight: 1.2,
-    overflowWrap: "anywhere",
-  },
-  cardHint: {
-    color: "#667085",
-    fontSize: 13,
-    fontWeight: 700,
-  },
-  definition: {
-    border: "1px solid #d5d9e2",
-    borderRadius: 8,
-    background: "#f8fafc",
-    padding: 18,
-    minHeight: 190,
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    gap: 8,
-  },
-  definitionLabel: {
-    color: "#526070",
-    fontSize: 13,
-    fontWeight: 800,
-    textTransform: "uppercase",
-  },
-  definitionTerm: {
-    color: "#0f3e8a",
-    fontSize: 26,
-    lineHeight: 1.2,
-    overflowWrap: "anywhere",
-  },
-  definitionText: {
-    color: "#344054",
-    fontSize: 17,
-    lineHeight: 1.5,
-    margin: 0,
-  },
-} satisfies Record<string, CSSProperties>;
-
-function ScienceCycle({ visual }: { visual: Extract<LessonVisual, { kind: "science_cycle" }> }) {
+function ScienceCycle({
+  visual,
+  tasks,
+  onPracticeStateChange,
+  onActivityAttempt,
+  voiceRate,
+}: {
+  visual: Extract<LessonVisual, { kind: "science_cycle" }>;
+  tasks: Extract<LessonActivityTask, { kind: "tap_cycle_node" }>[];
+  onPracticeStateChange?: (state: CanvasPracticeState) => void;
+  onActivityAttempt?: (attempt: Omit<CanvasActivityAttempt, "stepId">) => void;
+  voiceRate: number;
+}) {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [taskIndex, setTaskIndex] = useState(0);
+  const safeTaskIndex = clampInteger(taskIndex, 0, Math.max(0, tasks.length - 1));
+  const task = tasks[safeTaskIndex];
+  const taskSignature = tasks.map((item) => item.id).join("|");
 
   useEffect(() => {
     setSelectedIndex(0);
-  }, [visual.nodes]);
+    setTaskIndex(0);
+  }, [taskSignature, visual.nodes]);
 
   if (visual.nodes.length === 0) {
-    return <p style={emptyStyles.message}>No cycle nodes for this step yet.</p>;
+    return <p className="canvas-empty">No cycle nodes for this step yet.</p>;
   }
 
   const total = visual.nodes.length;
   const safeSelectedIndex = clampInteger(selectedIndex, 0, total - 1);
   const selectedNode = visual.nodes[safeSelectedIndex];
+  const selectedMatchesTask =
+    Boolean(task) && selectedNode.trim().toLowerCase() === task.target.trim().toLowerCase();
+  const isLastTask = safeTaskIndex === tasks.length - 1;
+  const practiceComplete = Boolean(task) && selectedMatchesTask && isLastTask;
+
+  useEffect(() => {
+    onPracticeStateChange?.({
+      active: tasks.length > 0,
+      complete: practiceComplete,
+      prompt: task?.instruction ?? "",
+    });
+  }, [onPracticeStateChange, practiceComplete, task?.instruction, tasks.length]);
+
+  function chooseNode(index: number) {
+    const node = visual.nodes[index];
+    const correct = Boolean(task) && node.trim().toLowerCase() === task.target.trim().toLowerCase();
+    setSelectedIndex(index);
+    if (task) {
+      onActivityAttempt?.({
+        taskId: task.id,
+        taskKind: "tap_cycle_node",
+        response: node,
+        correct,
+      });
+    }
+  }
+
+  function moveToNextTask() {
+    if (selectedMatchesTask && !isLastTask) {
+      setTaskIndex((current) => clampInteger(current + 1, 0, tasks.length - 1));
+    }
+  }
 
   return (
-    <div style={cycleStyles.layout}>
-      <div style={cycleStyles.diagram} aria-label={`${visual.title} cycle`}>
+    <div className="canvas-visual canvas-visual--cycle">
+      {task ? (
+        <InstructorTaskCard
+          current={safeTaskIndex}
+          instruction={task.instruction}
+          total={tasks.length}
+        />
+      ) : null}
+      <div className="science-cycle" aria-label={`${visual.title} cycle`}>
+        <div className="science-cycle__track" />
         {visual.nodes.map((node, index) => {
           const angle = (index / total) * Math.PI * 2 - Math.PI / 2;
-          const left = 50 + 36 * Math.cos(angle);
-          const top = 50 + 36 * Math.sin(angle);
+          const left = 50 + 37 * Math.cos(angle);
+          const top = 50 + 37 * Math.sin(angle);
           const selected = safeSelectedIndex === index;
 
           return (
@@ -327,214 +496,220 @@ function ScienceCycle({ visual }: { visual: Extract<LessonVisual, { kind: "scien
               key={`${node}-${index}`}
               type="button"
               aria-pressed={selected}
-              onClick={() => setSelectedIndex(index)}
-              style={{
-                ...cycleStyles.node,
-                left: `${left}%`,
-                top: `${top}%`,
-                borderColor: selected ? "#0e9384" : "#c9d1df",
-                background: selected ? "#e6f7f4" : "#ffffff",
-                color: selected ? "#0b4f48" : "#182230",
-              }}
+              className={selected ? "science-cycle__node is-selected" : "science-cycle__node"}
+              onClick={() => chooseNode(index)}
+              style={{ left: `${left}%`, top: `${top}%` }}
             >
               {node}
             </button>
           );
         })}
-        <div style={cycleStyles.center}>
+        <div className="science-cycle__center">
           <strong>{visual.title}</strong>
-          <span>Cycle</span>
+          <span>flow</span>
         </div>
       </div>
-      <div style={cycleStyles.detail} aria-live="polite">
-        <span style={cycleStyles.detailLabel}>Selected part</span>
-        <strong style={cycleStyles.detailTitle}>{selectedNode}</strong>
-        <span>
-          Step {safeSelectedIndex + 1} of {total}
-        </span>
-      </div>
+
+      <aside className="canvas-callout">
+        <span className="canvas-callout__label">Selected part</span>
+        <strong>{selectedNode}</strong>
+        <p>
+          {task
+            ? selectedMatchesTask
+              ? task.success
+              : task.hint ?? "Try another part in the cycle."
+            : `Step ${safeSelectedIndex + 1} of ${total}. Tap another part to follow the process.`}
+        </p>
+        {task && selectedMatchesTask && !isLastTask ? (
+          <button type="button" className="canvas-callout__action" onClick={moveToNextTask}>
+            Next task
+          </button>
+        ) : null}
+      </aside>
     </div>
   );
 }
 
-const cycleStyles = {
-  layout: {
-    width: "100%",
-    display: "grid",
-    gridTemplateColumns: "minmax(260px, 360px) minmax(180px, 1fr)",
-    alignItems: "center",
-    gap: 22,
-  },
-  diagram: {
-    position: "relative",
-    width: "100%",
-    maxWidth: 360,
-    aspectRatio: "1 / 1",
-    borderRadius: "50%",
-    border: "2px dashed #9aa6b2",
-    background: "radial-gradient(circle, #f8fafc 0 44%, transparent 45%)",
-  },
-  node: {
-    position: "absolute",
-    transform: "translate(-50%, -50%)",
-    minWidth: 98,
-    maxWidth: 128,
-    minHeight: 54,
-    padding: "8px 10px",
-    border: "2px solid #c9d1df",
-    borderRadius: 8,
-    cursor: "pointer",
-    font: "inherit",
-    fontWeight: 800,
-    lineHeight: 1.15,
-    textAlign: "center",
-    overflowWrap: "anywhere",
-    boxShadow: "0 8px 18px rgba(16, 24, 40, 0.08)",
-  },
-  center: {
-    position: "absolute",
-    inset: "35%",
-    borderRadius: "50%",
-    display: "grid",
-    placeItems: "center",
-    alignContent: "center",
-    gap: 2,
-    color: "#344054",
-    textAlign: "center",
-  },
-  detail: {
-    borderLeft: "4px solid #0e9384",
-    padding: "12px 0 12px 16px",
-    display: "flex",
-    flexDirection: "column",
-    gap: 6,
-    color: "#344054",
-  },
-  detailLabel: {
-    color: "#526070",
-    fontSize: 13,
-    fontWeight: 800,
-    textTransform: "uppercase",
-  },
-  detailTitle: {
-    color: "#0b4f48",
-    fontSize: 28,
-    lineHeight: 1.15,
-    overflowWrap: "anywhere",
-  },
-} satisfies Record<string, CSSProperties>;
-
-function FormulaBoard({ visual }: { visual: Extract<LessonVisual, { kind: "formula_board" }> }) {
+function FormulaBoard({
+  visual,
+  tasks,
+  onPracticeStateChange,
+  onActivityAttempt,
+  voiceRate,
+}: {
+  visual: Extract<LessonVisual, { kind: "formula_board" }>;
+  tasks: Extract<LessonActivityTask, { kind: "tap_formula_token" }>[];
+  onPracticeStateChange?: (state: CanvasPracticeState) => void;
+  onActivityAttempt?: (attempt: Omit<CanvasActivityAttempt, "stepId">) => void;
+  voiceRate: number;
+}) {
   const formulaParts = useMemo(
     () => visual.formula.match(/[A-Za-z0-9]+|[^A-Za-z0-9\s]+/g) ?? [visual.formula],
     [visual.formula],
   );
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [taskIndex, setTaskIndex] = useState(0);
+  const [taskWasTried, setTaskWasTried] = useState(false);
+  const safeTaskIndex = clampInteger(taskIndex, 0, Math.max(0, tasks.length - 1));
+  const task = tasks[safeTaskIndex];
+  const taskSignature = tasks.map((item) => item.id).join("|");
 
   useEffect(() => {
     setSelectedIndex(0);
-  }, [visual.formula]);
+    setTaskIndex(0);
+    setTaskWasTried(false);
+  }, [taskSignature, visual.formula]);
 
   const safeSelectedIndex = clampInteger(selectedIndex, 0, formulaParts.length - 1);
+  const selectedToken = formulaParts[safeSelectedIndex];
+  const selectedTokenMatchesTask =
+    Boolean(task) &&
+    taskWasTried &&
+    selectedToken.trim().toLowerCase() === task.target.trim().toLowerCase();
+  const isLastTask = safeTaskIndex === tasks.length - 1;
+  const practiceComplete = Boolean(task) && selectedTokenMatchesTask && isLastTask;
+
+  useEffect(() => {
+    onPracticeStateChange?.({
+      active: tasks.length > 0,
+      complete: practiceComplete,
+      prompt: task?.instruction ?? "",
+    });
+  }, [onPracticeStateChange, practiceComplete, task?.instruction, tasks.length]);
+
+  function chooseToken(index: number, token: string) {
+    const correct = Boolean(task) && token.trim().toLowerCase() === task.target.trim().toLowerCase();
+    setSelectedIndex(index);
+    setTaskWasTried(true);
+    if (task) {
+      onActivityAttempt?.({
+        taskId: task.id,
+        taskKind: "tap_formula_token",
+        response: token,
+        correct,
+      });
+    }
+  }
+
+  function moveToNextTask() {
+    if (!selectedTokenMatchesTask || isLastTask) {
+      return;
+    }
+
+    setTaskIndex((current) => clampInteger(current + 1, 0, tasks.length - 1));
+    setTaskWasTried(false);
+  }
 
   return (
-    <div style={formulaStyles.board}>
-      <div style={formulaStyles.formula} aria-label="Formula">
-        {formulaParts.map((part, index) => {
-          const selected = safeSelectedIndex === index;
-          const color = palette[index % palette.length];
-
-          return (
-            <button
-              key={`${part}-${index}`}
-              type="button"
-              aria-pressed={selected}
-              onClick={() => setSelectedIndex(index)}
-              style={{
-                ...formulaStyles.part,
-                borderColor: selected ? color : "#d5d9e2",
-                background: selected ? `${color}1a` : "#ffffff",
-                color: selected ? color : "#182230",
-              }}
-            >
-              {part}
+    <div className="canvas-visual canvas-visual--formula">
+      {task ? (
+        <InstructorTaskCard
+          current={safeTaskIndex}
+          instruction={task.instruction}
+          total={tasks.length}
+        />
+      ) : null}
+      <div className="formula-workbench">
+        <div className="formula-token-row" aria-label="Formula tokens">
+          {formulaParts.map((part, index) => {
+            const selected = safeSelectedIndex === index;
+            return (
+              <button
+                key={`${part}-${index}`}
+                type="button"
+                aria-pressed={selected}
+                className={selected ? "formula-token is-selected" : "formula-token"}
+                onClick={() => {
+                  chooseToken(index, part);
+                }}
+                style={{ "--token-color": tokenPalette[index % tokenPalette.length] } as CSSProperties}
+              >
+                {part}
+              </button>
+            );
+          })}
+        </div>
+        <div className="formula-explainer">
+          <span>Focus piece</span>
+          <strong>{selectedToken}</strong>
+          <p>
+            {task
+              ? selectedTokenMatchesTask
+                ? task.success
+                : `Tap ${task.target} in the formula.`
+              : visual.explanation}
+          </p>
+          {task && selectedTokenMatchesTask && !isLastTask ? (
+            <button type="button" className="formula-task-next" onClick={moveToNextTask}>
+              Next task
             </button>
-          );
-        })}
-      </div>
-      <div style={formulaStyles.explanation}>
-        <span style={formulaStyles.label}>Explanation</span>
-        <p style={formulaStyles.text}>{visual.explanation}</p>
+          ) : null}
+        </div>
       </div>
     </div>
   );
 }
 
-const formulaStyles = {
-  board: {
-    width: "100%",
-    border: "1px solid #29394d",
-    borderRadius: 8,
-    background: "#172033",
-    color: "#ffffff",
-    padding: 18,
-    display: "grid",
-    gap: 16,
-  },
-  formula: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 8,
-    alignItems: "center",
-  },
-  part: {
-    minHeight: 44,
-    border: "2px solid #d5d9e2",
-    borderRadius: 8,
-    padding: "8px 12px",
-    cursor: "pointer",
-    font: "inherit",
-    fontSize: 18,
-    fontWeight: 800,
-    overflowWrap: "anywhere",
-  },
-  explanation: {
-    borderTop: "1px solid rgba(255, 255, 255, 0.18)",
-    paddingTop: 14,
-    display: "grid",
-    gap: 6,
-  },
-  label: {
-    color: "#b9c0cc",
-    fontSize: 13,
-    fontWeight: 800,
-    textTransform: "uppercase",
-  },
-  text: {
-    margin: 0,
-    color: "#f3f6fb",
-    fontSize: 17,
-    lineHeight: 1.5,
-  },
-} satisfies Record<string, CSSProperties>;
+function renderVisual(
+  step: LessonStep,
+  voiceRate: number,
+  onPracticeStateChange?: (state: CanvasPracticeState) => void,
+  onActivityAttempt?: (attempt: CanvasActivityAttempt) => void,
+) {
+  const visual = step.visual;
+  const reportActivityAttempt = (attempt: Omit<CanvasActivityAttempt, "stepId">) => {
+    onActivityAttempt?.({ ...attempt, stepId: step.id });
+  };
 
-const emptyStyles = {
-  message: {
-    color: "#526070",
-    margin: 0,
-  },
-} satisfies Record<string, CSSProperties>;
-
-function renderVisual(visual: LessonVisual) {
   switch (visual.kind) {
     case "fraction_pizza":
-      return <FractionPizza visual={visual} />;
+      return (
+        <FractionPizza
+          visual={visual}
+          tasks={getTasksForKind(step, "select_fraction_count")}
+          voiceRate={voiceRate}
+          onPracticeStateChange={onPracticeStateChange}
+          onActivityAttempt={reportActivityAttempt}
+        />
+      );
     case "word_cards":
-      return <WordCards visual={visual} />;
+      return (
+        <WordCards
+          visual={visual}
+          tasks={getTasksForKind(step, "tap_word_card")}
+          voiceRate={voiceRate}
+          onPracticeStateChange={onPracticeStateChange}
+          onActivityAttempt={reportActivityAttempt}
+        />
+      );
     case "science_cycle":
-      return <ScienceCycle visual={visual} />;
+      return (
+        <ScienceCycle
+          visual={visual}
+          tasks={getTasksForKind(step, "tap_cycle_node")}
+          voiceRate={voiceRate}
+          onPracticeStateChange={onPracticeStateChange}
+          onActivityAttempt={reportActivityAttempt}
+        />
+      );
     case "formula_board":
-      return <FormulaBoard visual={visual} />;
+      return (
+        <FormulaBoard
+          visual={visual}
+          tasks={
+            getTasksForKind(step, "tap_formula_token").length
+              ? getTasksForKind(step, "tap_formula_token")
+              : (visual.tasks ?? []).map((task, index) => ({
+                  id: `formula-${index + 1}`,
+                  kind: "tap_formula_token",
+                  ...task,
+                }))
+          }
+          voiceRate={voiceRate}
+          onPracticeStateChange={onPracticeStateChange}
+          onActivityAttempt={reportActivityAttempt}
+        />
+      );
     default: {
       const unreachable: never = visual;
       return unreachable;
@@ -542,16 +717,21 @@ function renderVisual(visual: LessonVisual) {
   }
 }
 
-export function LessonCanvas({ step }: LessonCanvasProps) {
+export function LessonCanvas({
+  step,
+  onPracticeStateChange,
+  onActivityAttempt,
+  voiceRate,
+}: LessonCanvasProps) {
   return (
-    <section style={canvasStyles.shell} aria-labelledby={`lesson-step-${step.id}`}>
-      <div style={canvasStyles.header}>
-        <span style={canvasStyles.eyebrow}>Lesson canvas</span>
-        <h2 id={`lesson-step-${step.id}`} style={canvasStyles.title}>
-          {step.title}
-        </h2>
+    <section className="lesson-canvas" aria-labelledby={`lesson-step-${step.id}`}>
+      <header className="lesson-canvas__header">
+        <span>Interactive canvas</span>
+        <h2 id={`lesson-step-${step.id}`}>{step.title}</h2>
+      </header>
+      <div className="lesson-canvas__stage">
+        {renderVisual(step, voiceRate, onPracticeStateChange, onActivityAttempt)}
       </div>
-      <div style={canvasStyles.visualArea}>{renderVisual(step.visual)}</div>
     </section>
   );
 }
