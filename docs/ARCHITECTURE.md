@@ -142,4 +142,4 @@ The ChatGPT App prototype uses the Apps SDK pattern:
 - `start_lesson` returns structured lesson data and attaches the widget template.
 - Widget actions can call MCP tools such as `record_quiz_answer`.
 
-The prototype server keeps lesson and progress state in local JSON files. Production use should still add authentication, backups, and a stronger storage layer such as SQLite.
+The prototype server keeps lesson and progress state in local JSON files. It binds to loopback by default, restricts browser origins, and requires `AI_D_TEACH_SERVER_TOKEN` for public or tunneled access. Production use should still add backups and a stronger storage layer such as SQLite.

@@ -92,6 +92,8 @@ When `npm.cmd run chatgpt:app` is running:
 - `POST http://localhost:8787/api/tutor` returns an OpenAI tutor turn when `OPENAI_API_KEY` is configured, and returns unavailable when it is not.
 - Restarting the MCP server does not erase saved lessons or progress.
 - The standalone app still works if the server is unavailable.
+- Public or tunneled requests using a non-loopback host are rejected unless `AI_D_TEACH_SERVER_TOKEN` is configured and sent as `Authorization: Bearer <token>`.
+- Requests from unapproved browser origins return `403`, while loopback origins such as `http://127.0.0.1:5173` continue to work.
 
 ## Lesson Schema Validation Expectations
 
@@ -149,6 +151,7 @@ For the Apps SDK prototype:
 - `npm.cmd run chatgpt:app` starts the MCP server.
 - `GET http://localhost:8787/` returns a health message.
 - `GET http://localhost:8787/api/lessons` returns durable repository data.
+- A non-loopback `/mcp` request without a valid server token is rejected before tool handling.
 - The `/mcp` endpoint accepts MCP requests.
 - `start_lesson` returns structured lesson data and the lesson widget template.
 - The lesson widget can render lesson title, steps, visuals, and quiz choices.

@@ -31,7 +31,7 @@ The current prototype scope is a Vite and React app with local lesson storage, s
 - Activity Engine v1 teacher tasks for fraction counts, formula tokens, word cards, and science cycle nodes.
 - Fraction canvas practice that starts with 1/4, teaches the formula parts, then asks the child to build harder targets such as 2/4, 3/4, and 4/4.
 - Photosynthesis practice that asks the child to identify sunlight, inputs, outputs, and vocabulary through canvas actions.
-- Teacher tasks can be read aloud with explicit Read and Stop controls.
+- Teacher-task instructions stay visible and can be spoken through the browser voice layer.
 - Quiz flow with retry-friendly hints and completion only after all answers are correct.
 - Feedback Lab for teacher, student, and improvement notes.
 - Smoke validation for fresh and existing saved state.
@@ -80,6 +80,8 @@ npm.cmd run chatgpt:app
 Set `OPENAI_API_KEY` in `.env`. The default tutor model is `gpt-5-mini`.
 
 The standalone app at `http://127.0.0.1:5173` sends tutor messages to `http://127.0.0.1:8787/api/tutor` and falls back locally if that endpoint is unavailable.
+
+By default, the repository server binds to `127.0.0.1`, accepts only loopback browser origins, and keeps public tunnel access locked unless `AI_D_TEACH_SERVER_TOKEN` is configured. If you expose port `8787` with ngrok or another tunnel, set a strong `AI_D_TEACH_SERVER_TOKEN` in `.env` and configure the connector to send it as a Bearer token. Do not expose the server publicly with `AI_D_TEACH_ALLOW_PUBLIC_NO_AUTH=1` unless you are using a disposable data directory and no API key.
 
 ## Ralph Loop
 

@@ -52,13 +52,18 @@ http://localhost:8787/api/lessons
 http://localhost:8787/api/progress/{lessonId}
 ```
 
+The server is local-only by default. It binds to `127.0.0.1`, allows loopback browser origins for the standalone app, and blocks public tunnel access unless a server token is configured.
+
 ## Connect To ChatGPT During Development
 
 ChatGPT needs a public HTTPS URL for local development. Use a tunnel such as `ngrok`:
 
 ```powershell
+notepad .env
 ngrok http 8787
 ```
+
+Before opening the tunnel, set a strong `AI_D_TEACH_SERVER_TOKEN` in `.env`. Keep `OPENAI_API_KEY` and `AI_D_TEACH_SERVER_TOKEN` out of git.
 
 Then use the generated URL with `/mcp`:
 
@@ -72,9 +77,10 @@ In ChatGPT:
 2. Go to Settings -> Connectors.
 3. Create a connector.
 4. Paste the HTTPS `/mcp` URL.
-5. Open a new chat.
-6. Add the connector from the More menu.
-7. Ask: `Start a lesson about fractions for grade 3.`
+5. Choose Bearer token authentication and paste the `AI_D_TEACH_SERVER_TOKEN` value.
+6. Open a new chat.
+7. Add the connector from the More menu.
+8. Ask: `Start a lesson about fractions for grade 3.`
 
 ## How The ChatGPT Version Differs From The Standalone App
 
@@ -94,7 +100,6 @@ ChatGPT App:
 ## Next Production Steps
 
 - Share lesson schema between the standalone app and MCP server.
-- Add authentication if the connector is used beyond local testing.
 - Add backups or SQLite for safer long-term storage.
 - Add more tools for lesson versioning and Ralph Loop improvements.
 - Add automated MCP protocol tests.
