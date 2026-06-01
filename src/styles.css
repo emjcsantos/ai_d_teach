@@ -932,6 +932,13 @@ button:disabled,
   color: #745313;
 }
 
+.tutor-chat__speech-status.is-speaking {
+  border-color: rgba(110, 111, 191, 0.3);
+  background: rgba(110, 111, 191, 0.11);
+  color: #4e528e;
+  font-weight: 800;
+}
+
 .tutor-chat__speech-status.is-error {
   border-color: rgba(231, 102, 76, 0.28);
   background: rgba(231, 102, 76, 0.1);
