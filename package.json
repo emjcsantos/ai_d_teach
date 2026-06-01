@@ -1,13 +1,37 @@
 {
   "name": "ai-d-teach",
   "version": "0.1.0",
-  "private": true,
+  "description": "Local-first interactive AI study companion for reusable, voice-friendly child lessons.",
+  "private": false,
+  "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/emjcsantos/ai_d_teach.git"
+  },
+  "bugs": {
+    "url": "https://github.com/emjcsantos/ai_d_teach/issues"
+  },
+  "homepage": "https://github.com/emjcsantos/ai_d_teach#readme",
+  "keywords": [
+    "ai-tutor",
+    "education",
+    "local-first",
+    "learning-tools",
+    "openai",
+    "react",
+    "voice"
+  ],
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
+    "check": "npm run build && npm run audit:prod",
+    "audit:prod": "npm audit --omit=dev --audit-level=moderate",
     "chatgpt:app": "node server/apps-sdk-server.mjs",
     "preview": "vite preview --host 0.0.0.0"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "^1.7.0",

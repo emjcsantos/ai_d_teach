@@ -1,8 +1,20 @@
 # AI D Teach
 
+[![CI](https://github.com/emjcsantos/ai_d_teach/actions/workflows/ci.yml/badge.svg)](https://github.com/emjcsantos/ai_d_teach/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Security Policy](https://img.shields.io/badge/security-policy-blue.svg)](SECURITY.md)
+
 AI D Teach is a local-first interactive study companion for a child studying with parent support. A parent chooses a topic, grade level, and difficulty, then the app teaches through structured lesson steps, narration, visuals, short prompts, quizzes, and progress notes.
 
 The MVP is intentionally not a generic chat app or worksheet generator. Its core job is to reuse saved lessons, render them as interactive learning experiences, and improve them over time through the Ralph Loop.
+
+AI D Teach is open source because families, teachers, and developers should be able to inspect how an AI learning tool stores data, prompts children, handles voice, and improves lessons over time. The project favors local-first defaults, optional server-side AI, and reusable lesson data over opaque cloud-only tutoring.
+
+## Project Status
+
+AI D Teach is an early prototype. The current goal is to make the core learning loop solid: choose a topic, reuse or create a lesson, interact with the canvas, talk with the tutor, save progress, and improve lessons through feedback.
+
+The project is ready for design, accessibility, education, and engineering feedback. See [ROADMAP.md](ROADMAP.md), [CONTRIBUTING.md](CONTRIBUTING.md), and [docs/OSS_APPLICATION.md](docs/OSS_APPLICATION.md).
 
 ## MVP Purpose
 
@@ -108,11 +120,12 @@ Useful scripts:
 
 ```powershell
 npm.cmd run build
+npm.cmd run check
 npm.cmd run chatgpt:app
 npm.cmd run preview
 ```
 
-`npm.cmd run dev` starts the local Vite development server. `npm.cmd run build` runs TypeScript build checks and creates the production bundle. `npm.cmd run chatgpt:app` starts the ChatGPT Apps SDK MCP prototype server and shared repository API. `npm.cmd run preview` serves the built app locally.
+`npm.cmd run dev` starts the local Vite development server. `npm.cmd run build` runs TypeScript build checks and creates the production bundle. `npm.cmd run check` runs build plus production dependency audit. `npm.cmd run chatgpt:app` starts the ChatGPT Apps SDK MCP prototype server and shared repository API. `npm.cmd run preview` serves the built app locally.
 
 ## ChatGPT App Prototype
 
@@ -129,3 +142,15 @@ npm.cmd run build
 ```
 
 For UI, repository, schema, or voice changes, also use the smoke expectations in [docs/VALIDATION.md](docs/VALIDATION.md), including fresh-state and existing saved-state checks where practical.
+
+## Open Source Maintenance
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) explains local setup, contribution expectations, and child-safety rules.
+- [SECURITY.md](SECURITY.md) explains how to avoid leaking secrets or local learner data.
+- [ROADMAP.md](ROADMAP.md) tracks near-term and longer-term work.
+- [MAINTAINERS.md](MAINTAINERS.md) lists maintainer responsibilities.
+- [CHANGELOG.md](CHANGELOG.md) records notable changes.
+
+## License
+
+AI D Teach is available under the [MIT License](LICENSE).

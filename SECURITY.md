@@ -1,4 +1,21 @@
-# Security Notes
+# Security Policy
+
+## Supported Versions
+
+AI D Teach is an early prototype. Security fixes are applied to `main`.
+
+## Reporting A Vulnerability
+
+Please do not open public issues for vulnerabilities, leaked secrets, or private learner data. Use GitHub private vulnerability reporting if available, or contact the maintainer through GitHub before public disclosure.
+
+Helpful reports include:
+
+- Affected commit or version.
+- Steps to reproduce.
+- Impact.
+- Whether an API key, learner record, or local data file may be exposed.
+
+## Public Readiness Checklist
 
 AI D Teach is a local-first prototype. Before making a fork, branch, or release public:
 
