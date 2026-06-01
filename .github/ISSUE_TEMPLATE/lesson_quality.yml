@@ -1,0 +1,33 @@
+name: Lesson quality feedback
+description: Report confusing, inaccurate, or low-engagement lesson behavior.
+title: "[Lesson quality]: "
+body:
+  - type: input
+    id: lesson
+    attributes:
+      label: Lesson or topic
+      placeholder: "Fractions, Photosynthesis, etc."
+    validations:
+      required: true
+  - type: textarea
+    id: observation
+    attributes:
+      label: What felt unclear or ineffective?
+    validations:
+      required: true
+  - type: textarea
+    id: learner
+    attributes:
+      label: Learner context
+      description: Grade level, difficulty, or learning goal. Do not include personal child data.
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested improvement
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I did not include child personal data or private transcripts.
+          required: true

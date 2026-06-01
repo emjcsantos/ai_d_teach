@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI D Teach Lesson</title>
+    <style>
+      :root {
+        color: #18212f;
+        background: #eef4f6;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --ink: #18212f;
+        --muted: #677386;
+        --line: rgba(24, 33, 47, 0.14);
+        --paper: #fffdf8;
+        --teal: #1c8a8a;
+        --coral: #e7664c;
+        --sun: #f2b84b;
+        --leaf: #5e9f58;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+      }
+
+      button {
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .app {
+        display: grid;
+        gap: 12px;
+        padding: 12px;
+      }
+
+      .topbar,
+      .canvas,
+      .side-panel,
+      .quiz {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 253, 248, 0.94);
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px;
+      }
+
+      .topbar h1,
+      .topbar p,
+      .side-panel h2,
+      .side-panel p,
+      .quiz h2 {
+        margin: 0;
+      }
+
+      .topbar h1 {
+        font-size: 1.25rem;
+        line-height: 1.12;
+      }
+
+      .topbar p,
+      .side-panel p,
+      .progress-line {
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
+      .stage {
+        display: grid;
+        grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.75fr);
+        gap: 12px;
+      }
+
+      .canvas {
+        display: grid;
+        min-height: 410px;
+        padding: 14px;
+        background:
+          radial-gradient(circle at 14% 16%, rgba(242, 184, 75, 0.22), transparent 26%),
+          radial-gradient(circle at 84% 20%, rgba(28, 138, 138, 0.18), transparent 28%),
+          linear-gradient(145deg, #ffffff, #edf7f4);
+      }
+
+      .visual {
+        display: grid;
+        place-items: center;
+        min-height: 310px;
+      }
+
+      .side-panel,
+      .quiz {
+        display: grid;
+        gap: 12px;
+        align-content: start;
+        padding: 14px;
+      }
+
+      .step-list,
+      .quick-actions,
+      .choices {
+        display: grid;
+        gap: 8px;
+      }
+
+      .step-button,
+      .choice-button,
+      .action-button,
+      .expand-button {
+        min-height: 40px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: white;
+        color: var(--ink);
+        padding: 8px 10px;
+        text-align: left;
+      }
+
+      .step-button[aria-current="step"],
+      .choice-button.selected {
+        border-color: rgba(28, 138, 138, 0.55);
+        background: rgba(28, 138, 138, 0.1);
+        color: #176c6c;
+      }
+
+      .action-button,
+      .expand-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-weight: 850;
+      }
+
+      .expand-button {
+        background: var(--ink);
+        color: white;
+      }
+
+      .narration {
+        padding: 12px;
+        border-radius: 8px;
+        background: #fff8e7;
+        line-height: 1.5;
+      }
+
+      .prompt {
+        padding: 12px;
+        border: 1px solid rgba(242, 184, 75, 0.5);
+        border-radius: 8px;
+        background: #fffaeb;
+        color: #7a2e0e;
+        line-height: 1.42;
+      }
+
+      .word-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+        width: 100%;
+      }
+
+      .word-card {
+        min-height: 132px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: white;
+        line-height: 1.4;
+      }
+
+      .word-card strong {
+        display: block;
+        margin-bottom: 8px;
+        color: #176c6c;
+      }
+
+      .formula-board {
+        display: grid;
+        gap: 12px;
+        width: min(100%, 680px);
+        padding: 18px;
+        border-radius: 8px;
+        background: #172033;
+        color: white;
+      }
+
+      .formula {
+        overflow-wrap: anywhere;
+        font-size: clamp(1.35rem, 4vw, 2.4rem);
+        font-weight: 900;
+        text-align: center;
+      }
+
+      .formula-explanation {
+        padding-top: 12px;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+        color: #edf3f8;
+        line-height: 1.45;
+      }
+
+      .cycle-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 10px;
+        width: 100%;
+      }
+
+      .cycle-node {
+        display: grid;
+        place-items: center;
+        min-height: 92px;
+        border: 1px solid rgba(28, 138, 138, 0.28);
+        border-radius: 8px;
+        background: white;
+        font-weight: 850;
+        text-align: center;
+      }
+
+      .pizza-wrap {
+        display: grid;
+        gap: 12px;
+        justify-items: center;
+        width: 100%;
+      }
+
+      .pizza-label {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        padding: 8px 14px;
+        border-radius: 8px;
+        background: var(--ink);
+        color: white;
+        font-weight: 900;
+      }
+
+      .feedback {
+        min-height: 38px;
+        padding: 10px;
+        border-radius: 8px;
+        background: rgba(242, 184, 75, 0.15);
+        line-height: 1.4;
+      }
+
+      @media (max-width: 780px) {
+        .stage {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <section class="topbar">
+        <div>
+          <h1 id="lesson-title">AI D Teach</h1>
+          <p id="lesson-summary">Waiting for a lesson from ChatGPT.</p>
+        </div>
+        <button class="expand-button" type="button" id="fullscreen-button">Fullscreen</button>
+      </section>
+
+      <section class="stage">
+        <section class="canvas" aria-label="Interactive lesson canvas">
+          <div class="progress-line" id="step-progress"></div>
+          <div class="visual" id="visual"></div>
+        </section>
+
+        <aside class="side-panel" aria-label="Lesson controls">
+          <h2 id="step-title">Lesson Step</h2>
+          <p class="narration" id="narration"></p>
+          <p class="prompt" id="prompt"></p>
+          <div class="step-list" id="step-list"></div>
+          <div class="quick-actions">
+            <button class="action-button" type="button" id="sync-context-button">
+              Tell ChatGPT what I am viewing
+            </button>
+          </div>
+        </aside>
+      </section>
+
+      <section class="quiz" aria-label="Lesson quiz">
+        <h2>Quick Check</h2>
+        <p id="quiz-question"></p>
+        <div class="choices" id="quiz-choices"></div>
+        <div class="feedback" id="quiz-feedback">Choose an answer when you are ready.</div>
+      </section>
+    </main>
+
+    <script type="module">
+      const lessonTitle = document.querySelector("#lesson-title");
+      const lessonSummary = document.querySelector("#lesson-summary");
+      const stepProgress = document.querySelector("#step-progress");
+      const visualEl = document.querySelector("#visual");
+      const stepTitle = document.querySelector("#step-title");
+      const narration = document.querySelector("#narration");
+      const prompt = document.querySelector("#prompt");
+      const stepList = document.querySelector("#step-list");
+      const quizQuestion = document.querySelector("#quiz-question");
+      const quizChoices = document.querySelector("#quiz-choices");
+      const quizFeedback = document.querySelector("#quiz-feedback");
+      const syncContextButton = document.querySelector("#sync-context-button");
+      const fullscreenButton = document.querySelector("#fullscreen-button");
+
+      let state = {
+        lesson: null,
+        progress: null,
+        currentStepIndex: 0,
+      };
+
+      function getToolOutput() {
+        return window.openai?.toolOutput ?? window.openai?.structuredContent ?? null;
+      }
+
+      function applyToolResult(result) {
+        const structuredContent = result?.structuredContent ?? result;
+
+        if (structuredContent?.lesson) {
+          state.lesson = structuredContent.lesson;
+        }
+
+        if (structuredContent?.progress) {
+          state.progress = structuredContent.progress;
+        }
+
+        render();
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;");
+      }
+
+      function renderFractionPizza(visual) {
+        const parts = Math.max(1, Math.min(16, Number(visual.parts) || 1));
+        const highlight = Math.max(0, Math.min(parts, Number(visual.highlight) || 0));
+        const paths = Array.from({ length: parts }, (_, index) => {
+          const center = 100;
+          const radius = 86;
+          const startAngle = (index / parts) * Math.PI * 2 - Math.PI / 2;
+          const endAngle = ((index + 1) / parts) * Math.PI * 2 - Math.PI / 2;
+          const startX = center + radius * Math.cos(startAngle);
+          const startY = center + radius * Math.sin(startAngle);
+          const endX = center + radius * Math.cos(endAngle);
+          const endY = center + radius * Math.sin(endAngle);
+          const largeArcFlag = endAngle - startAngle > Math.PI ? 1 : 0;
+          const d =
+            parts === 1
+              ? "M 14 100 A 86 86 0 1 0 186 100 A 86 86 0 1 0 14 100 Z"
+              : `M ${center} ${center} L ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY} Z`;
+          const fill = index < highlight ? "#e7664c" : "#ffd98a";
+          return `<path d="${d}" fill="${fill}" stroke="#8f4f16" stroke-width="2"></path>`;
+        }).join("");
+
+        visualEl.innerHTML = `
+          <div class="pizza-wrap">
+            <svg role="img" aria-label="${escapeHtml(visual.label)} fraction model" viewBox="0 0 200 200" width="280">
+              <circle cx="100" cy="100" r="90" fill="#f7c66b"></circle>
+              ${paths}
+              <circle cx="100" cy="100" r="34" fill="#fff9e8" stroke="#8f4f16" stroke-width="2"></circle>
+              <text x="100" y="106" text-anchor="middle" fill="#682d08" font-size="22" font-weight="800">${escapeHtml(visual.label)}</text>
+            </svg>
+            <span class="pizza-label">${highlight}/${parts} selected</span>
+          </div>
+        `;
+      }
+
+      function renderVisual(step) {
+        const visual = step.visual;
+
+        if (visual.kind === "fraction_pizza") {
+          renderFractionPizza(visual);
+          return;
+        }
+
+        if (visual.kind === "word_cards") {
+          visualEl.innerHTML = `
+            <div class="word-grid">
+              ${visual.words
+                .map(
+                  (word) => `
+                    <article class="word-card">
+                      <strong>${escapeHtml(word.term)}</strong>
+                      <span>${escapeHtml(word.meaning)}</span>
+                    </article>
+                  `,
+                )
+                .join("")}
+            </div>
+          `;
+          return;
+        }
+
+        if (visual.kind === "science_cycle") {
+          visualEl.innerHTML = `
+            <div class="cycle-grid">
+              ${visual.nodes.map((node) => `<div class="cycle-node">${escapeHtml(node)}</div>`).join("")}
+            </div>
+          `;
+          return;
+        }
+
+        if (visual.kind === "formula_board") {
+          visualEl.innerHTML = `
+            <div class="formula-board">
+              <div class="formula">${escapeHtml(visual.formula)}</div>
+              <div class="formula-explanation">${escapeHtml(visual.explanation)}</div>
+            </div>
+          `;
+        }
+      }
+
+      function renderSteps(lesson) {
+        stepList.innerHTML = "";
+        lesson.steps.forEach((step, index) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "step-button";
+          button.textContent = `${index + 1}. ${step.title}`;
+          if (index === state.currentStepIndex) {
+            button.setAttribute("aria-current", "step");
+          }
+          button.addEventListener("click", () => {
+            state.currentStepIndex = index;
+            render();
+            updateModelContext();
+          });
+          stepList.appendChild(button);
+        });
+      }
+
+      function renderQuiz(lesson) {
+        const question = lesson.quiz?.[0];
+        quizChoices.innerHTML = "";
+
+        if (!question) {
+          quizQuestion.textContent = "No quiz question for this lesson yet.";
+          quizFeedback.textContent = "Ask ChatGPT to create a quiz question.";
+          return;
+        }
+
+        quizQuestion.textContent = question.prompt;
+
+        question.choices.forEach((choice) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "choice-button";
+          button.textContent = choice;
+          button.addEventListener("click", async () => {
+            const correct = choice === question.answer;
+            button.classList.add("selected");
+            quizFeedback.textContent = correct
+              ? `Correct. ${question.explanation}`
+              : `Try again. ${question.explanation}`;
+            await window.openai?.callTool?.("record_quiz_answer", {
+              lessonId: lesson.id,
+              questionId: question.id,
+              selected: choice,
+            });
+            updateModelContext();
+          });
+          quizChoices.appendChild(button);
+        });
+      }
+
+      async function updateModelContext() {
+        const lesson = state.lesson;
+        const step = lesson?.steps?.[state.currentStepIndex];
+
+        if (!lesson || !step) {
+          return;
+        }
+
+        const content = [
+          {
+            type: "text",
+            text: `The child is viewing ${lesson.topic}, step ${state.currentStepIndex + 1}: ${step.title}. Narration: ${step.narration}`,
+          },
+        ];
+
+        if (window.openai?.updateModelContext) {
+          await window.openai.updateModelContext({ content });
+          return;
+        }
+
+        window.parent.postMessage(
+          {
+            jsonrpc: "2.0",
+            id: Date.now(),
+            method: "ui/update-model-context",
+            params: { content },
+          },
+          "*",
+        );
+      }
+
+      function render() {
+        const lesson = state.lesson;
+
+        if (!lesson) {
+          lessonTitle.textContent = "AI D Teach";
+          lessonSummary.textContent = "Ask ChatGPT to start a lesson.";
+          visualEl.textContent = "Waiting for lesson data.";
+          return;
+        }
+
+        const step = lesson.steps[state.currentStepIndex] ?? lesson.steps[0];
+        state.currentStepIndex = lesson.steps.indexOf(step);
+        lessonTitle.textContent = lesson.topic;
+        lessonSummary.textContent = lesson.summary;
+        stepProgress.textContent = `Grade ${lesson.gradeLevel} · Step ${state.currentStepIndex + 1} of ${lesson.steps.length}`;
+        stepTitle.textContent = step.title;
+        narration.textContent = step.narration;
+        prompt.textContent = step.prompt ?? "Ask ChatGPT a follow-up question about this step.";
+        renderVisual(step);
+        renderSteps(lesson);
+        renderQuiz(lesson);
+      }
+
+      window.addEventListener(
+        "openai:set_globals",
+        (event) => {
+          applyToolResult(event.detail?.globals?.toolOutput ?? getToolOutput());
+        },
+        { passive: true },
+      );
+
+      window.addEventListener(
+        "message",
+        (event) => {
+          if (event.source !== window.parent) return;
+          const message = event.data;
+          if (message?.jsonrpc === "2.0" && message.method === "ui/notifications/tool-result") {
+            applyToolResult(message.params);
+          }
+        },
+        { passive: true },
+      );
+
+      syncContextButton.addEventListener("click", updateModelContext);
+      fullscreenButton.addEventListener("click", async () => {
+        await window.openai?.requestDisplayMode?.({ mode: "fullscreen" });
+      });
+
+      applyToolResult(getToolOutput());
+    </script>
+  </body>
+</html>
+
