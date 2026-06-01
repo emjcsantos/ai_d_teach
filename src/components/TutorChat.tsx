@@ -17,6 +17,8 @@ export type TutorChatProps = {
   onSendMessage: (message: string) => Promise<TutorTurn>;
 };
 
+type ConversationState = "idle" | "listening" | "thinking" | "speaking";
+
 function escapeRegExp(text: string) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -74,6 +76,23 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
   const voiceSubmitTimerRef = useRef<number | undefined>(undefined);
   const trimmedDraft = draft.trim();
   const showQuickPrompts = !trimmedDraft && !isListening && !isWaitingForTutor;
+  const conversationState: ConversationState = isListening
+    ? "listening"
+    : isWaitingForTutor
+      ? "thinking"
+      : isSpeakingReply
+        ? "speaking"
+        : "idle";
+  const conversationStatus =
+    voiceError ||
+    interimTranscript ||
+    (conversationState === "listening"
+      ? "I'm listening. Take your time."
+      : conversationState === "thinking"
+        ? "I'm thinking about your answer."
+        : conversationState === "speaking"
+          ? "I'm speaking. Press Talk anytime to interrupt me."
+          : "");
 
   const messages = useMemo(
     () =>
@@ -127,6 +146,8 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
       return;
     }
 
+    stopSpeaking();
+    setIsSpeakingReply(false);
     setIsWaitingForTutor(true);
     const fastReply = getFastBridgeReply(cleanMessage, lesson.topic);
     setBridgeReply(fastReply);
@@ -307,26 +328,32 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
           <span>Talk to the tutor</span>
           <textarea
             value={draft}
-            onChange={(event) => setDraft(event.target.value)}
+            onChange={(event) => {
+              if (isSpeakingReply) {
+                stopSpeaking();
+                setIsSpeakingReply(false);
+              }
+
+              setDraft(event.target.value);
+            }}
             placeholder={isListening ? "I'm listening..." : "Say hi, ask for help, or tell me what you notice"}
             rows={3}
           />
         </label>
 
-        {isListening || interimTranscript || voiceError || isWaitingForTutor ? (
+        {conversationStatus ? (
           <p
             className={[
               "tutor-chat__speech-status",
               voiceError ? "is-error" : "",
               isListening ? "is-listening" : "",
               isWaitingForTutor ? "is-thinking" : "",
+              isSpeakingReply ? "is-speaking" : "",
             ]
               .filter(Boolean)
               .join(" ")}
           >
-            {voiceError ||
-              interimTranscript ||
-              (isListening ? "I'm listening. Say one thought." : "I'm getting your answer ready.")}
+            {conversationStatus}
           </p>
         ) : null}
 
@@ -352,12 +379,14 @@ export function TutorChat({ lesson, progress, voiceRate, onSendMessage }: TutorC
             onClick={isListening ? stopVoiceInput : startVoiceInput}
             title={
               speechInputAvailable
-                ? "Start or stop push-to-talk voice input"
+                ? isSpeakingReply
+                  ? "Interrupt the tutor and start talking"
+                  : "Start or stop push-to-talk voice input"
                 : "Speech input is unavailable in this browser"
             }
           >
             {isListening ? <Square size={16} aria-hidden="true" /> : <Mic size={16} aria-hidden="true" />}
-            {isListening ? "Stop listening" : "Talk"}
+            {isListening ? "Send voice" : isSpeakingReply ? "Interrupt" : "Talk"}
           </button>
           {isSpeakingReply ? (
             <button
